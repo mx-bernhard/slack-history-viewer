@@ -1,0 +1,71 @@
+# docker-compose.yml
+services:
+  slack-viewer:
+    build: .
+    container_name: slack-viewer-app
+    ports:
+      - '5173:5173'
+    volumes:
+      # Mount Slack data read-only into /data
+      - ${SLACK_HISTORY_DATA_PATH:-./data}:/data:ro # Host path maps to /data inside container
+      # Mount the SQLite DB file for persistence
+      - app_db_data:/db:rw
+    environment:
+      - NODE_ENV=production
+      # App needs to know where data is mounted
+      - SLACK_HISTORY_DATA_PATH=/data
+      # Environment variables for connecting to Solr
+      - SOLR_HOST=solr
+      - SOLR_PORT=8983
+      - SOLR_CORE=slack_messages
+      - SLACK_DB_FILENAME=/db/processed_messages.db
+    restart: unless-stopped
+    # Ensure Solr config init completes before the app starts
+    depends_on:
+      solr-init:
+        condition: service_completed_successfully # Wait for init container to succeed
+
+  # Solr Service Definition
+  solr:
+    image: solr:9
+    container_name: slack-viewer-solr
+    # expose:
+    #   - '8983:8983'  # Expose Solr port to the host
+    ports:
+      - '8983:8983'
+    volumes:
+      - solr_data:/var/solr
+    command:
+      - solr-precreate
+      - slack_messages
+    restart: unless-stopped
+    # Add healthcheck for the init container to wait on
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'curl',
+          '-f',
+          'http://localhost:8983/solr/slack_messages/admin/ping',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Init Container to Configure Solr Default Field
+  solr-init:
+    image: curlimages/curl:latest
+    depends_on:
+      solr:
+        condition: service_healthy
+    volumes:
+      # Mount the init script into the container, read-only
+      - ./scripts/init-solr.sh:/usr/local/bin/init-solr.sh:ro
+    # Command is now simply executing the mounted script
+    command: ['/usr/local/bin/init-solr.sh']
+    # No restart needed, it's a one-shot task
+
+# Define named volumes for persistence
+volumes:
+  solr_data: # For Solr index
+  app_db_data: # For the application's SQLite DB

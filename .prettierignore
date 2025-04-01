@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+.yarn
+public
+*.min.js
+*.d.ts 
+src/components/emoji-map.ts

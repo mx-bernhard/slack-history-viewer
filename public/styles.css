@@ -1,0 +1,475 @@
+/* Add styles for Slack message block components */
+
+/* Container for blocks */
+.blocks-container {
+  margin-top: 4px;
+}
+
+/* Rich text block */
+.rich-text-block {
+  margin-bottom: 4px;
+}
+
+/* Rich text section */
+.rich-text-section {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Rich text quote */
+.rich-text-quote {
+  margin: 4px 0;
+  padding: 0 0 0 12px;
+  position: relative;
+}
+
+.rich-text-quote::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #e3e3e3;
+  border-radius: 2px;
+}
+
+/* Attachment styles */
+.attachment-container {
+  margin-top: 8px;
+}
+
+.attachment-item {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+/* Service unfurl styling (YouTube, etc.) */
+.attachment-item.service-unfurl {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background-color: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.attachment-service.service-header {
+  padding: 8px;
+  font-size: 0.9em;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.02);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.attachment-item.service-unfurl .attachment-title {
+  padding: 8px 12px 4px;
+  margin-bottom: 0;
+  font-size: 1em;
+}
+
+.attachment-item.service-unfurl .attachment-image-container.service-image {
+  margin: 0;
+  width: 100%;
+}
+
+/* Service unfurl image - specifically for services like YouTube */
+.service-unfurl-image {
+  max-width: 100%;
+  min-height: 150px;
+  max-height: 300px;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  display: block;
+}
+
+.attachment-item.service-unfurl .attachment-image {
+  max-width: 100%;
+  width: 100%;
+  border-radius: 0;
+  display: block;
+}
+
+.attachment-author {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.attachment-author-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  border-radius: 2px;
+}
+
+.attachment-author-name {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.attachment-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.attachment-text {
+  margin-bottom: 8px;
+  font-size: 0.95em;
+  color: #aaaaaa;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.attachment-fields {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.attachment-field {
+  margin-bottom: 6px;
+}
+
+.attachment-field.short {
+  width: 50%;
+  padding-right: 8px;
+}
+
+.attachment-field.full {
+  width: 100%;
+}
+
+.attachment-field-title {
+  font-weight: 600;
+  font-size: 0.85em;
+  margin-bottom: 2px;
+}
+
+.attachment-field-value {
+  font-size: 0.9em;
+}
+
+/* Attachment image styles */
+.attachment-image-container {
+  margin: 6px 0;
+  max-width: 100%;
+  display: block;
+}
+
+.attachment-image-link {
+  display: inline-block;
+  max-width: 100%;
+}
+
+.attachment-image {
+  max-width: 100%;
+  max-height: 300px; /* Limit height to 300px */
+  border-radius: 4px;
+  cursor: pointer;
+  display: block;
+}
+
+.attachment-thumb-container {
+  float: right;
+  margin-left: 10px;
+  margin-bottom: 10px;
+}
+
+.attachment-thumb {
+  max-width: 80px;
+  max-height: 80px;
+  border-radius: 4px;
+}
+
+.attachment-service {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: #717274;
+}
+
+.attachment-service-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+}
+
+/* Code formatting */
+code {
+  background-color: #373737;
+  border-radius: 3px;
+  font-family: monospace;
+  padding: 2px 4px;
+  font-size: 0.9em;
+}
+
+/* Link styling */
+a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Emoji styling */
+.emoji {
+  font-size: 1.2em;
+  line-height: 1;
+  vertical-align: -0.1em;
+}
+
+/* Style for img tags used for emojis */
+.emoji-image {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.15em;
+  margin: 0 0.05em;
+  image-rendering: auto;
+  object-fit: contain;
+}
+
+.emoji-image-reaction {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.15em;
+  image-rendering: auto;
+}
+
+/* Container span for images set via dangerouslySetInnerHTML */
+.emoji-image-container {
+  line-height: 0;
+}
+
+.mention {
+  color: #1264a3;
+  background-color: #e8f5fa;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* Unsupported elements */
+.unsupported-block,
+.unsupported-element,
+.unsupported-text {
+  color: #666;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+.search-results-list {
+  overflow-y: auto;
+}
+
+.search-result-item {
+  border-radius: 5px;
+  margin: 8px;
+  padding: 8px;
+  border: 1px solid #373737;
+  background-color: #252525;
+}
+
+.search-result-item:hover {
+  background-color: #2f2f2f;
+}
+
+.search-input-container {
+  margin-bottom: 10px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 1em;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background-color: #333;
+  color: #eee;
+}
+
+.search-nav {
+  display: flex;
+  align-items: center;
+  color: #ccc;
+}
+
+.search-nav-button {
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  padding-bottom: 7px;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.search-nav-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.search-nav-button:disabled {
+  color: #666;
+  cursor: not-allowed;
+}
+
+.search-nav-counter {
+  margin: 0 6px;
+  font-size: 0.9em;
+}
+
+/* Mark styling for search highlights */
+mark {
+  background-color: #fff2b3;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* Bold text */
+strong {
+  font-weight: 600;
+}
+
+/* Add styles for thread indicator and thread panel */
+
+/* Thread indicator */
+.thread-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #1264a3;
+  cursor: pointer;
+  background-color: rgba(18, 100, 163, 0.05);
+  transition: background-color 0.2s;
+}
+
+.thread-indicator:hover {
+  background-color: rgba(18, 100, 163, 0.1);
+  text-decoration: underline;
+}
+
+.thread-icon {
+  margin-right: 6px;
+  font-size: 1.1em;
+}
+
+/* Thread panel */
+.message-view-inner {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.message-list-container {
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.thread-panel {
+  width: 350px;
+  flex-shrink: 0;
+  height: 100%;
+  background-color: #fff;
+  border-left: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.thread-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.thread-panel-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.thread-close-button {
+  background: transparent;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+  color: #616061;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+}
+
+.thread-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.thread-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.thread-messages .message-row {
+  position: relative !important;
+  margin-bottom: 16px;
+  top: auto !important;
+  left: auto !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .thread-indicator {
+    color: #36c5f0;
+    background-color: rgba(54, 197, 240, 0.1);
+  }
+  
+  .thread-indicator:hover {
+    background-color: rgba(54, 197, 240, 0.2);
+  }
+  
+  .thread-panel {
+    background-color: #1a1d21;
+    border-left: 1px solid #2d3136;
+  }
+  
+  .thread-panel-header {
+    border-bottom: 1px solid #2d3136;
+  }
+  
+  .thread-close-button {
+    color: #d1d2d3;
+  }
+  
+  .thread-close-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+} 
