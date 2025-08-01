@@ -99,9 +99,15 @@ export async function buildSearchIndex(): Promise<void> {
             const solrDoc = {
               id: docId, // Solr unique key
               chatId_s: chat.id,
-              ts_l: Math.floor(parseFloat(message.ts) * 1000), // Store as milliseconds epoch long for sorting/range queries
+              chat_id_s: chat.id,
+              ts_l: Math.floor(parseFloat(message.ts) * 1000),
+              ts_dt: new Date(
+                Math.floor(parseFloat(message.ts) * 1000)
+              ).toISOString(),
               user_s: message.user ?? 'Unknown',
               text_txt_en: message.text, // Use text_en for English language analysis
+              chat_type_s: chat.type,
+              channel_name_s: chat.name,
             };
             documentsBatch.push(solrDoc);
             markAsProcessedBatch.push(markAsProcessed);
@@ -211,6 +217,7 @@ export async function searchMessages(
     id: string;
     chatId_s?: string;
     ts_l?: number;
+    ts_dt?: string;
     user_s?: string;
     text_txt_en?: string;
   }

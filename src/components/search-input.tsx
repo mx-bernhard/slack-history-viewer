@@ -50,6 +50,7 @@ export const SearchInput = () => {
         value={searchQueryInput}
         onChange={handleChange}
         placeholder="Search messages..."
+        title="Fields: chat_type_s (channel, dm), ts_dt (timestamp of message), text_txt_en (actual message), channel_name_s (name of channel or dm partner(s)), chat_id_s, user_s"
         style={{ marginRight: showNav ? '8px' : '0' }}
       />
       {showNav && (
