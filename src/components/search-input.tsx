@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useCallback } from 'react';
 import { SearchResultDocument } from '../server/search-indexer';
 import { useStore } from '../store';
 
@@ -12,13 +12,16 @@ export const SearchInput = () => {
     searchQuery,
     searchResults,
     currentResultIndex,
+    limit,
+    setLimit,
   } = useStore(
     ({
-      actions: { setSearchQueryInput, navigateToResult },
+      actions: { setSearchQueryInput, navigateToResult, setLimit },
       searchQueryInput,
       searchQuery, // Assuming the final debounced query is here
       searchResults, // Assuming this holds the timestamps or can derive length
       currentResultIndex,
+      limit,
     }) => ({
       setSearchQueryInput,
       searchQueryInput,
@@ -29,12 +32,23 @@ export const SearchInput = () => {
         ? searchResults
         : constantArray,
       currentResultIndex,
+      limit,
+      setLimit,
     })
   );
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSearchQueryInput(event.target.value);
-  };
+  const onSearchQueryChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setSearchQueryInput(event.target.value);
+    },
+    []
+  );
+
+  const onLimitChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const numberValue = parseInt(event.target.value);
+    if (typeof numberValue !== 'number') return;
+    setLimit(numberValue);
+  }, []);
 
   // Determine if navigation should be shown
   const totalResults = searchResults.length;
@@ -45,13 +59,19 @@ export const SearchInput = () => {
   return (
     <div className="search-input-container">
       <input
-        className="search-input"
+        className="search-input input"
         type="search"
         value={searchQueryInput}
-        onChange={handleChange}
+        onChange={onSearchQueryChange}
         placeholder="Search messages..."
-        title="Fields: chat_type_s (channel, dm), ts_dt (timestamp of message), text_txt_en (actual message), channel_name_s (name of channel or dm partner(s)), chat_id_s, user_s"
+        title="Fields: chat_type_s (channel, dm), ts_dt (timestamp of message), text_txt_en (actual message), channel_name_s (name of channel or dm partner(s)), user_name_s, user_display_name_s, user_real_name_s, chat_id_s, user_s"
         style={{ marginRight: showNav ? '8px' : '0' }}
+      />
+      <input
+        className="input limit-input"
+        type="number"
+        value={limit}
+        onChange={onLimitChange}
       />
       {showNav && (
         <div className="search-nav">

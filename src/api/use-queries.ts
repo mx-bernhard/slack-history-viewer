@@ -31,11 +31,11 @@ export const useUsersQuery = () => {
 
 // Search query hook
 export const createSearchQuery =
-  (queryClient: QueryClient) => (query: string) =>
+  (queryClient: QueryClient) => (query: string, limit: number) =>
     queryClient.fetchQuery({
-      queryKey: ['search', query],
+      queryKey: ['search', query, limit],
       queryFn: () => {
         if (query.trim() === '') return Promise.resolve([]);
-        return apiClient.searchMessages(query);
+        return apiClient.searchMessages(query, limit);
       },
     });

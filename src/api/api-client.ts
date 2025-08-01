@@ -41,8 +41,13 @@ export const apiClient = {
   },
 
   // Search for messages
-  searchMessages: async (query: string): Promise<SearchResultDocument[]> => {
-    const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+  searchMessages: async (
+    query: string,
+    limit: number
+  ): Promise<SearchResultDocument[]> => {
+    const response = await fetch(
+      `/api/search?q=${encodeURIComponent(query)}&limit=${limit}`
+    );
     return handleApiError(response) as Promise<SearchResultDocument[]>;
   },
 };

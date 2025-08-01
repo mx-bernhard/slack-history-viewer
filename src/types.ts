@@ -78,6 +78,7 @@ export interface SlackReaction {
 export interface SlackProfile {
   real_name?: string;
   display_name?: string;
+  name?: string;
   image_72?: string;
   // Add other profile fields if used
 }

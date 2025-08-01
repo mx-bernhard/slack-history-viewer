@@ -19,9 +19,11 @@ export interface SlackHistoryViewerStore {
   searchResults: Error | SearchResultDocument[] | 'loading' | null;
   currentResultIndex: number; // -1 indicates no selection or focus
   selectedChatId: string | null;
+  limit: number;
   actions: {
     setSelectedChatId: (chatId: string | null) => void;
     setSearchQueryInput: (query: string) => void;
+    setLimit: (value: number) => void;
     navigateToResult: (direction: 'prev' | 'next') => void;
     setSelectedResult: (id: string, chatId: string) => void;
     getCurrentTargetId: () => string | null;
@@ -54,6 +56,7 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
       searchResults: null,
       currentResultIndex: -1,
       selectedChatId: null,
+      limit: 50,
       actions: {
         isCurrentSearchResult: (chatId: string, ts: string) => {
           const { searchResults, currentResultIndex } = get();
@@ -76,7 +79,8 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
         },
         setSearchQueryInput: (() => {
           const setSearchQuery = pDebounce(
-            (query: string) => createSearchQuery(queryClient)(query),
+            (query: string) =>
+              createSearchQuery(queryClient)(query, get().limit),
             300
           );
           return (query: string) => {
@@ -103,6 +107,9 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
             );
           };
         })(),
+        setLimit(value) {
+          set({ limit: value });
+        },
         navigateToResult: direction => {
           const { searchResults, currentResultIndex } = get();
           if (searchResults == null || searchResults instanceof Error) return;

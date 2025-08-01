@@ -94,18 +94,22 @@ export async function buildSearchIndex(): Promise<void> {
             const docId = `${chat.id}_${message.ts}`;
 
             // Prepare document for Solr
-            // Using dynamic field conventions (_s for string, _l for long, _txt_en for text)
+            // Using dynamic field conventions (_s for string, _l for long, _txt_en for text, _dt for timestamp iso format)
             // Solr automatically handles types for dynamic fields if schema is schemaless
             const solrDoc = {
-              id: docId, // Solr unique key
+              id: docId,
               chatId_s: chat.id,
               chat_id_s: chat.id,
               ts_l: Math.floor(parseFloat(message.ts) * 1000),
               ts_dt: new Date(
                 Math.floor(parseFloat(message.ts) * 1000)
               ).toISOString(),
-              user_s: message.user ?? 'Unknown',
-              text_txt_en: message.text, // Use text_en for English language analysis
+              user_id_s: message.user ?? 'Unknown',
+              user_display_name_s:
+                message.user_profile?.display_name ?? 'Unknown',
+              user_name_s: message.user_profile?.name ?? 'Unknown',
+              user_real_name_s: message.user_profile?.real_name ?? 'Unknown',
+              text_txt_en: message.text,
               chat_type_s: chat.type,
               channel_name_s: chat.name,
             };

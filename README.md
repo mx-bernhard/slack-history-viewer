@@ -29,6 +29,16 @@ See the full license text in the `LICENSE` file.
 - Full-text search across all messages.
 - Efficient loading and display using virtual scrolling (`react-window`).
 - Server-Side Rendering (SSR) for initial load performance.
+- Indexed fields
+  - chat_id_s: technical chat id
+  - ts_l: timestamp as epoch number in ms
+  - ts_dt: timestamp of message, use, e.g., [date range queries](https://solr.apache.org/guide/solr/latest/indexing-guide/date-formatting-math.html#date-math-syntax) to restrict search
+  - text_txt_en: the actual text mesage
+  - chat_type_s: type of chat ("channel", "dm", "group", "mpim" and maybe more)
+  - channel_name_s: name of the chat or channel, depends on chat_type_s
+  - user_name_s: user name of message author
+  - user_display_name_s: display name of message author
+  - user_real_name_s: real name of message author
 
 ## Future Enhancements
 
@@ -63,7 +73,6 @@ The server reads the location of the Slack export data from the `SLACK_HISTORY_D
 To run the Slack Export Viewer locally for development:
 
 1. **Prerequisites:**
-
    - Node.js (22.x or higher, LTS version recommended)
    - Yarn via corepack / nvm (.nvmrc included)
    - Docker (for running the Solr search engine)
@@ -77,7 +86,6 @@ To run the Slack Export Viewer locally for development:
    ```
 
 3. **Place Slack Export Data:**
-
    - Download your Slack workspace export and unzip it.
    - Either:
      - Place the **contents** of the unzipped folder into a directory named `data` in the project root.
@@ -130,7 +138,6 @@ To run the Slack Export Viewer locally for development:
    In either setup, the Slack Viewer should be accessible in your browser at `http://localhost:5173`.
 
 6. **Initial Search Indexing:**
-
    - When you start the application server for the first time (either locally via `yarn dev` or in Docker), it will automatically begin building the Solr search index from your Slack data.
    - **This initial indexing process can take a significant amount of time**, depending on the size of your Slack export. Monitor the server logs for progress.
    - Subsequent server starts will be much faster, as the system uses a local SQLite database (`processed_messages.db` created in the project root) to track already indexed messages and will only index new ones.
@@ -149,12 +156,10 @@ To create an optimized production build:
 
 2. **Output:**
    The production-ready files will be generated in the `dist/` directory. This typically includes:
-
    - `dist/client/`: Optimized frontend assets (JS, CSS).
    - `dist/server/`: Transpiled server code.
 
 3. **Running the Production Build:**
-
    - Ensure the Node.js environment has access to the directory containing your Slack export data.
    - Set the `SLACK_HISTORY_DATA_PATH` environment variable to the path of your Slack export directory.
    - Run the server:
