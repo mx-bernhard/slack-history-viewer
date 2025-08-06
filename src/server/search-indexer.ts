@@ -1,4 +1,5 @@
 import { getAllChats, getMessagesForChat } from './data-loader.js';
+import { createExtractInfos } from './extract-infos.js';
 
 export interface SearchResultDocument {
   id: string;
@@ -25,27 +26,21 @@ const solrApiBase = `http://${solrHost}:${solrPort}/solr/${solrCore}`;
 
 console.log(`Connecting to Solr: ${solrApiBase}`);
 
-// Ping Solr to check connection on startup (optional but good practice)
-// Wrap ping in an async function to use await
 async function checkSolrConnection(): Promise<void> {
-  try {
-    const response = await fetch(solrApiBase + '/admin/ping?wt=json', {
-      method: 'GET',
-      headers: { accept: 'application/json; charset=utf-8' },
-    });
-    console.log('Successfully pinged Solr:', response.statusText);
-  } catch (err: unknown) {
-    // Type err as unknown and handle appropriately
-    if (err instanceof Error) {
-      console.error(`Error pinging Solr: ${err.message}`);
-    } else {
-      console.error(`Error pinging Solr: ${String(err)}`);
-    }
+  const response = await fetch(solrApiBase + '/admin/ping?wt=json', {
+    method: 'GET',
+    headers: { accept: 'application/json; charset=utf-8' },
+  });
+  if (response.status === 200) {
+    console.log('✅ Successfully pinged Solr:', response.statusText);
+  } else {
+    console.error(
+      '❌ Solr is not responding from ping. ' + response.statusText
+    );
   }
 }
 
-// Call the async function - use void for fire-and-forget
-void checkSolrConnection();
+await checkSolrConnection();
 
 // Assuming SQLite check for already processed files happens in data-loader or needs adding there
 export async function buildSearchIndex(): Promise<void> {
@@ -55,7 +50,7 @@ export async function buildSearchIndex(): Promise<void> {
   let totalMessagesAttempted: number = 0;
   let totalMessagesSuccessfullyIndexed: number = 0;
   let buildHadErrors: boolean = false;
-  const batchSize: number = 1000; // Index documents in batches
+  const batchSize: number = 1; // Index documents in batches
   let documentsBatch: Record<string, unknown>[] = [];
   const markAsProcessedBatch: (() => Promise<void>)[] = [];
   let processedInfoBatch: { chatId: string; ts: string }[] = []; // Track IDs for SQLite update
@@ -63,6 +58,7 @@ export async function buildSearchIndex(): Promise<void> {
   try {
     console.log('Fetching chats to index...');
     const chats = await getAllChats();
+    const extractInfos = await createExtractInfos();
     if (chats.length === 0) {
       console.warn('No new chats found to index.');
       return;
@@ -103,6 +99,7 @@ export async function buildSearchIndex(): Promise<void> {
               [messageField]: message.text,
               chat_type_s: chat.type,
               channel_name_s: chat.name,
+              ...extractInfos(message),
             };
             documentsBatch.push(solrDoc);
             markAsProcessedBatch.push(markAsProcessed);
