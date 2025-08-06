@@ -1,48 +1,39 @@
-import * as Solr from 'solr-client';
-
 import { getAllChats, getMessagesForChat } from './data-loader.js';
 
-// --- Keep Interfaces ---
 export interface SearchResultDocument {
-  id: string; // Unique ID (chatId_ts)
+  id: string;
   chatId: string;
-  ts: string; // Timestamp string
+  ts: string;
   user: string;
   text: string;
   highlightPhrases: string[];
 }
 
-// --- Define markers for internal extraction ---
 const HL_PRE_MARKER = '@@SLACK_HL_START@@';
 const HL_POST_MARKER = '@@SLACK_HL_END@@';
-// Regex to find text between markers
+
 const HIGHLIGHT_EXTRACT_REGEX = new RegExp(
   `${HL_PRE_MARKER}(.*?)${HL_POST_MARKER}`,
   'g'
 );
 
-// --- Solr Client Initialization ---
-const solrHost = process.env.SOLR_HOST ?? 'localhost';
-const solrPort = process.env.SOLR_PORT ?? '8983';
-const solrCore = process.env.SOLR_CORE ?? 'slack_messages'; // Core name from docker-compose
+const solrHost = process.env.SLACK_SOLR_HOST ?? 'localhost';
+const solrPort = process.env.SLACK_SOLR_PORT ?? '8983';
+const solrCore = process.env.SLACK_SOLR_CORE ?? 'slack_messages';
 
-const solrClient = Solr.createClient({
-  host: solrHost,
-  port: solrPort,
-  core: solrCore,
-  path: '/solr', // Base path for Solr API
-});
+const solrApiBase = `http://${solrHost}:${solrPort}/solr/${solrCore}`;
 
-console.log(
-  `Connecting to Solr: http://${solrHost}:${solrPort}/solr/${solrCore}`
-);
+console.log(`Connecting to Solr: ${solrApiBase}`);
 
 // Ping Solr to check connection on startup (optional but good practice)
 // Wrap ping in an async function to use await
 async function checkSolrConnection(): Promise<void> {
   try {
-    const obj = await solrClient.ping(); // Await the promise
-    console.log('Successfully pinged Solr:', obj);
+    const response = await fetch(solrApiBase + '/admin/ping?wt=json', {
+      method: 'GET',
+      headers: { accept: 'application/json; charset=utf-8' },
+    });
+    console.log('Successfully pinged Solr:', response.statusText);
   } catch (err: unknown) {
     // Type err as unknown and handle appropriately
     if (err instanceof Error) {
@@ -109,7 +100,7 @@ export async function buildSearchIndex(): Promise<void> {
                 message.user_profile?.display_name ?? 'Unknown',
               user_name_s: message.user_profile?.name ?? 'Unknown',
               user_real_name_s: message.user_profile?.real_name ?? 'Unknown',
-              text_txt_en: message.text,
+              [messageField]: message.text,
               chat_type_s: chat.type,
               channel_name_s: chat.name,
             };
@@ -127,31 +118,28 @@ export async function buildSearchIndex(): Promise<void> {
               documentsBatch = []; // Reset batch for next iteration
               processedInfoBatch = [];
 
-              try {
-                await solrClient.add(currentDocsToAdd);
+              const success = await callSolrUpdate(currentDocsToAdd);
+              if (!success) {
+                console.error(
+                  `Error indexing batch to Solr or marking as processed.`
+                );
+                buildHadErrors = true;
+              } else {
                 totalMessagesSuccessfullyIndexed += currentDocsToAdd.length;
                 // Mark this batch as processed in SQLite *after* successful Solr add
                 await Promise.all(markAsProcessedBatch.map(m => m()));
-              } catch (batchError) {
-                console.error(
-                  `Error indexing batch to Solr or marking as processed:`,
-                  batchError
-                );
-                buildHadErrors = true;
-                // Decide on error handling: retry? Skip batch? Stop?
-                // For now, we just mark an error and continue to the next batch.
               }
             }
           }
         }
         // TODO: If tracking is done at chat/file level, update SQLite here.
         // Current implementation tracks at message level.
-      } catch (chatError: unknown) {
+      } catch (error: unknown) {
         console.error(
           `Error processing chat ${chat.id} for Solr indexing:`,
-          chatError
+          error
         );
-        buildHadErrors = true; // Mark that an error occurred during chat processing
+        buildHadErrors = true;
       }
     }
 
@@ -160,17 +148,16 @@ export async function buildSearchIndex(): Promise<void> {
       console.log(
         `Indexing final batch of ${documentsBatch.length.toString()} documents...`
       );
-      const finalDocsToAdd = [...documentsBatch]; // Copy batches
+      const finalDocsToAdd = [...documentsBatch];
 
-      try {
-        await solrClient.add(finalDocsToAdd);
-        totalMessagesSuccessfullyIndexed += finalDocsToAdd.length;
-      } catch (batchError) {
+      const success = await callSolrUpdate(finalDocsToAdd);
+      if (!success) {
         console.error(
-          `Error indexing final batch to Solr or marking as processed:`,
-          batchError
+          'Error indexing final batch to Solr or marking as processed.'
         );
         buildHadErrors = true;
+      } else {
+        totalMessagesSuccessfullyIndexed += finalDocsToAdd.length;
       }
     }
 
@@ -180,17 +167,15 @@ export async function buildSearchIndex(): Promise<void> {
       // Or adjust condition based on desired resilience
       try {
         console.log('Committing changes to Solr index...');
-        await solrClient.commit();
+        await commitIndex();
         console.log('Solr commit successful.');
       } catch (commitError) {
         console.error('Error committing changes to Solr:', commitError);
-        buildHadErrors = true; // Mark error if commit fails
+        buildHadErrors = true;
       }
     } else {
       console.warn('Skipping final Solr commit due to errors during indexing.');
     }
-
-    // **TODO**: Perform final SQLite updates if necessary after successful commit.
 
     const duration = Date.now() - startTime;
     if (buildHadErrors) {
@@ -204,8 +189,40 @@ export async function buildSearchIndex(): Promise<void> {
     }
   } catch (error: unknown) {
     console.error('Fatal error during Solr indexing process:', error);
-    // We might need to handle partial batch failures and SQLite rollbacks depending on requirements
   }
+}
+
+const messageField = 'text_txt_en';
+
+async function callSolrUpdate(json: unknown) {
+  const jsonStringBody = JSON.stringify(json);
+  const updateResponse = await fetch(solrApiBase + '/update/json?wt=json', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json; charset=utf-8',
+      'content-length': String(Buffer.byteLength(jsonStringBody)),
+      'content-type': 'application/json',
+    },
+    body: jsonStringBody,
+  });
+  if (updateResponse.status >= 400 && updateResponse.status < 500) {
+    throw new Error(
+      'Error ' +
+        String(updateResponse.status) +
+        ': Could not add documents to solr. Response: ' +
+        updateResponse.statusText
+    );
+  }
+  if (updateResponse.status !== 200) {
+    console.error('!!!! Could not update index: ' + updateResponse.statusText);
+    return false;
+  }
+
+  return true;
+}
+
+async function commitIndex() {
+  await callSolrUpdate({ commit: {} });
 }
 
 export async function searchMessages(
@@ -223,33 +240,43 @@ export async function searchMessages(
     ts_l?: number;
     ts_dt?: string;
     user_s?: string;
-    text_txt_en?: string;
+    [messageField]?: string;
   }
 
-  const solrQuery = solrClient
-    .query()
-    .q(query) // Use raw query
-    // Request highlighting with custom markers for extraction
-    .hl({
-      on: true,
-      fl: 'text_txt_en',
-      simplePre: HL_PRE_MARKER,
-      simplePost: HL_POST_MARKER,
-      fragsize: 0, // Important: Get whole field content for extraction
-    })
-    .start(0)
-    .rows(limit)
-    .sort({ ts_l: 'desc' });
-
   try {
-    // Assert type to include highlighting
-    const result = (await solrClient.search(solrQuery)) as {
-      response: { numFound: number; docs: SolrDoc[] };
+    interface SolrQueryResponse {
+      response: {
+        numFound: number;
+        docs: SolrDoc[];
+      };
       highlighting?: Record<
         string,
         undefined | Record<string, undefined | string[]>
       >;
+    }
+
+    // Assert type to include highlighting
+    const search = {
+      q: query,
+      df: messageField,
+      hl: String(true),
+      'hl.fl': messageField,
+      'hl.fragsize': String(0),
+      'hl.simple.pre': HL_PRE_MARKER,
+      'hl.simple.post': HL_POST_MARKER,
+      start: String(0),
+      rows: String(limit),
+      sort: 'ts_l desc',
+      wt: 'json',
     };
+    const queryParams = new URLSearchParams(Object.entries(search)).toString();
+    const response = await fetch(solrApiBase + '/select?' + queryParams, {
+      method: 'GET',
+    });
+    if (response.status !== 200) {
+      throw new Error('Could not search: ' + response.statusText);
+    }
+    const result = (await response.json()) as SolrQueryResponse;
     const highlights = result.highlighting ?? {};
 
     const finalDocs: SearchResultDocument[] = result.response.docs.map(
@@ -257,12 +284,13 @@ export async function searchMessages(
         const timestampMilliseconds = doc.ts_l ?? 0;
         const timestampSeconds = timestampMilliseconds / 1000;
 
-        const highlightedSnippets = highlights[doc.id]?.text_txt_en;
+        const highlightedSnippets = highlights[doc.id]?.[messageField];
         let highlightPhrases: string[] = [];
 
         // If highlights exist for this doc, extract terms between markers
         if (highlightedSnippets && highlightedSnippets.length > 0) {
           const snippet = highlightedSnippets[0]; // fragsize=0 means one snippet
+          // assert(snippet !== undefined);
           let match;
           // Use regex to find all occurrences and extract the captured group (.*?)
           while ((match = HIGHLIGHT_EXTRACT_REGEX.exec(snippet)) !== null) {
@@ -281,7 +309,7 @@ export async function searchMessages(
           ts: timestampSeconds.toFixed(6),
           user: doc.user_s ?? 'Unknown',
           // Return the ORIGINAL text
-          text: doc.text_txt_en ?? '',
+          text: doc[messageField] ?? '',
           highlightPhrases,
         } satisfies SearchResultDocument;
       }
