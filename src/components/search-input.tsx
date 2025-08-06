@@ -41,14 +41,17 @@ export const SearchInput = () => {
     (event: ChangeEvent<HTMLInputElement>) => {
       setSearchQueryInput(event.target.value);
     },
-    []
+    [setSearchQueryInput]
   );
 
-  const onLimitChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const numberValue = parseInt(event.target.value);
-    if (typeof numberValue !== 'number') return;
-    setLimit(numberValue);
-  }, []);
+  const onLimitChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const numberValue = parseInt(event.target.value);
+      if (typeof numberValue !== 'number') return;
+      setLimit(numberValue);
+    },
+    [setLimit]
+  );
 
   // Determine if navigation should be shown
   const totalResults = searchResults.length;

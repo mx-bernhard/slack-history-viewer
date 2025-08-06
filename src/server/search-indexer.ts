@@ -41,7 +41,21 @@ async function checkSolrConnection(): Promise<void> {
 }
 
 await checkSolrConnection();
-
+interface SolrDoc {
+  id: string;
+  chat_id_s: string;
+  chatId_s: string;
+  ts_l: number;
+  ts_dt: string;
+  user_id_s: string;
+  [messageField]: string;
+  user_display_name_s: string;
+  user_name_s: string;
+  chat_type_s: string;
+  user_real_name_s: string;
+  channel_name_s: string;
+  url_ss: string[];
+}
 // Assuming SQLite check for already processed files happens in data-loader or needs adding there
 export async function buildSearchIndex(): Promise<void> {
   console.log('Starting Solr indexing process...');
@@ -50,15 +64,15 @@ export async function buildSearchIndex(): Promise<void> {
   let totalMessagesAttempted: number = 0;
   let totalMessagesSuccessfullyIndexed: number = 0;
   let buildHadErrors: boolean = false;
-  const batchSize: number = 1; // Index documents in batches
-  let documentsBatch: Record<string, unknown>[] = [];
+  const batchSize: number = 1000;
+  let documentsBatch: SolrDoc[] = [];
   const markAsProcessedBatch: (() => Promise<void>)[] = [];
   let processedInfoBatch: { chatId: string; ts: string }[] = []; // Track IDs for SQLite update
 
   try {
     console.log('Fetching chats to index...');
     const chats = await getAllChats();
-    const extractInfos = await createExtractInfos();
+    const extractInfos = createExtractInfos();
     if (chats.length === 0) {
       console.warn('No new chats found to index.');
       return;
@@ -83,7 +97,7 @@ export async function buildSearchIndex(): Promise<void> {
             // Prepare document for Solr
             // Using dynamic field conventions (_s for string, _l for long, _txt_en for text, _dt for timestamp iso format)
             // Solr automatically handles types for dynamic fields if schema is schemaless
-            const solrDoc = {
+            const solrDoc: SolrDoc = {
               id: docId,
               chatId_s: chat.id,
               chat_id_s: chat.id,
@@ -231,15 +245,6 @@ export async function searchMessages(
   );
   const startTime = Date.now();
 
-  interface SolrDoc {
-    id: string;
-    chatId_s?: string;
-    ts_l?: number;
-    ts_dt?: string;
-    user_s?: string;
-    [messageField]?: string;
-  }
-
   try {
     interface SolrQueryResponse {
       response: {
@@ -278,7 +283,7 @@ export async function searchMessages(
 
     const finalDocs: SearchResultDocument[] = result.response.docs.map(
       (doc: SolrDoc) => {
-        const timestampMilliseconds = doc.ts_l ?? 0;
+        const timestampMilliseconds = doc.ts_l;
         const timestampSeconds = timestampMilliseconds / 1000;
 
         const highlightedSnippets = highlights[doc.id]?.[messageField];
@@ -302,11 +307,16 @@ export async function searchMessages(
 
         return {
           id: doc.id,
-          chatId: doc.chatId_s ?? '',
+          chatId: doc.chat_id_s,
           ts: timestampSeconds.toFixed(6),
-          user: doc.user_s ?? 'Unknown',
+          user: [
+            doc.user_display_name_s,
+            doc.user_name_s,
+            doc.user_real_name_s,
+            doc.user_id_s,
+          ].join(' | '),
           // Return the ORIGINAL text
-          text: doc[messageField] ?? '',
+          text: doc[messageField],
           highlightPhrases,
         } satisfies SearchResultDocument;
       }

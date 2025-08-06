@@ -46,7 +46,7 @@ export const apiClient = {
     limit: number
   ): Promise<SearchResultDocument[]> => {
     const response = await fetch(
-      `/api/search?q=${encodeURIComponent(query)}&limit=${limit}`
+      `/api/search?q=${encodeURIComponent(query)}&limit=${String(limit)}`
     );
     return handleApiError(response) as Promise<SearchResultDocument[]>;
   },

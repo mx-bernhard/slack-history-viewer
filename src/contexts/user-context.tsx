@@ -1,4 +1,11 @@
-import { createContext, useContext, ReactNode, FC } from 'react';
+import {
+  createContext,
+  useContext,
+  ReactNode,
+  FC,
+  useMemo,
+  useCallback,
+} from 'react';
 import { useUsersQuery } from '../api/use-queries';
 import { SlackUser } from '../types';
 
@@ -23,20 +30,29 @@ export const UserProvider: FC<UserProviderProps> = ({ children }) => {
   const { data: usersList = [], isLoading, error } = useUsersQuery();
 
   // Convert the array to a Map for quick ID lookups
-  const users = new Map(usersList.map(user => [user.id, user]));
+  const users = useMemo(
+    () => new Map(usersList.map(user => [user.id, user])),
+    [usersList]
+  );
 
   // Function to get a user by ID from the map
-  const getUserById = (userId: string): SlackUser | undefined => {
-    return users.get(userId);
-  };
+  const getUserById = useCallback(
+    (userId: string): SlackUser | undefined => {
+      return users.get(userId);
+    },
+    [users]
+  );
 
   // Value object provided by the context
-  const value = {
-    users,
-    loading: isLoading,
-    error: error instanceof Error ? error.message : null,
-    getUserById,
-  };
+  const value = useMemo(
+    () => ({
+      users,
+      loading: isLoading,
+      error: error instanceof Error ? error.message : null,
+      getUserById,
+    }),
+    [error, getUserById, isLoading, users]
+  );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

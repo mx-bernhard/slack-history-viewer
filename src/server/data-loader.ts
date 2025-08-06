@@ -3,6 +3,7 @@ import { glob } from 'glob';
 import { groupBy, sortBy } from 'lodash-es';
 import { limitFunction } from 'p-limit';
 import path from 'path';
+import { isNotUndefined } from 'typed-assert';
 import { Database, open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import {
@@ -344,9 +345,9 @@ export async function getMessagesForChat(
   } = {}
 ): Promise<SlackMessageAndMarkProcessed[]> {
   if (!(options.unprocessedOnly ?? false) && messageCache.has(chatId)) {
-    const cachedMessages = messageCache.get(chatId) ?? [];
-    messageCache.delete(chatId);
-    messageCache.set(chatId, cachedMessages);
+    messageCache.set(chatId, messageCache.get(chatId) ?? []);
+    const cachedMessages = messageCache.get(chatId);
+    isNotUndefined(cachedMessages);
     return cachedMessages.map(m => ({
       message: m,
       markAsProcessed: dummyResolve,
