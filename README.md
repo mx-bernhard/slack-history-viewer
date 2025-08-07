@@ -39,6 +39,7 @@ See the full license text in the `LICENSE` file.
   - user_name_s: user name of message author
   - user_display_name_s: display name of message author
   - user_real_name_s: real name of message author
+  - url_ss: all urls mentioned in the message as a solr array field
 
 ## Future Enhancements
 
