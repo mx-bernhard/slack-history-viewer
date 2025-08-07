@@ -9,7 +9,7 @@ import type {
   RichTextBlock,
   RichTextBlockElement,
   RichTextElement,
-  SectionBlockRenderer as SdkSectionBlockRenderer,
+  SectionBlock,
 } from '@slack/web-api';
 import { getHighlighted } from '../get-highlighted';
 import { ReactElement, ReactNode } from 'react';
@@ -61,7 +61,7 @@ const BlockItem = ({
         </div>
       );
     case 'section':
-      return <SectionBlockRenderer block={block as SdkSectionBlockRenderer} />;
+      return <SectionBlockRenderer block={block as SectionBlock} />;
     default:
       return (
         <div className="unsupported-block">
@@ -265,19 +265,14 @@ const TextElement = ({
     }
 
     default:
-      return (
-        <span className="unsupported-text">
-          {/* Fallback for unknown types */}
-          unsupported type: {type}
-        </span>
-      );
+      return <span className="unsupported-text">Unsupported type: {type}</span>;
   }
 };
 
 const SectionBlockRenderer = ({
   block,
 }: {
-  block: SdkSectionBlockRenderer;
+  block: SectionBlock;
 }): ReactElement => {
   const renderMarkdown = (
     text: string | undefined | null
@@ -312,7 +307,7 @@ const SectionBlockRenderer = ({
           ))}
         </div>
       )}
-      {/* TODO: Render accessory if needed */}
+      {block.accessory != null && <div>Unsupported accessory</div>}
     </div>
   );
 };
