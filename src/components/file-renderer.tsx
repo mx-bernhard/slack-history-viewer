@@ -18,7 +18,7 @@ const getFileUrl = (
 ): string | undefined => {
   const isAbsoluteUrl = file.url_private?.startsWith('https://') ?? false;
   if (file.name != null && isAbsoluteUrl) {
-    return `/data/__uploads/${file.id}/${String(file.name)}`;
+    return `/data/__uploads/${file.id}/${file.name}`;
   } else if (chatId != null && !isAbsoluteUrl) {
     return `/data/${chatId}/${String(file.url_private)}`;
   }

@@ -30,7 +30,7 @@ export const parseSlackMessage = (
       const user = getUserById(userId);
       const userName = user?.profile.display_name ?? user?.name ?? userId;
       // For now, just return the @mention text, maybe link later?
-      return `@${String(userName)}`;
+      return `@${userName}`;
     }
   );
 
