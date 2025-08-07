@@ -179,7 +179,7 @@ const ClientMessageView = () => {
           if (targetIndexCandidate === -1) {
             // Handle potentially null scrollToId in the log message
             console.warn(
-              `MessageView: Could not find message index for ID: ${String(scrollToId)}`
+              `MessageView: Could not find message index for ID: ${scrollToId}`
             );
           }
           return targetIndexCandidate;
