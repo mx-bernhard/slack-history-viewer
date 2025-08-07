@@ -45,11 +45,7 @@ See the full license text in the `LICENSE` file.
 
 While the viewer covers core functionality, potential future enhancements include:
 
-- User & Channel Mentions: Highlighting and potentially linking `@user` and `#channel` mentions within messages.
-- Advanced Search Filters: Adding options to filter search results by user, date range, or specific channels.
-- Enhanced Message Subtype Handling: Better rendering for various message types (file comments, reminders, rich_text_list, etc.).
 - Custom Emoji Display: Support for rendering custom emojis included in the Slack export.
-- Pinned Messages: Ability to view or filter messages that were pinned in Slack.
 
 ## Project Structure
 
@@ -188,6 +184,17 @@ The project includes a `Dockerfile` and `docker-compose.yml` for containerized d
   2. Run `docker compose up --build -d`. The `--build` flag ensures the app image is up-to-date, and `-d` runs the services in the background.
   3. Access the viewer at `http://localhost:5173`.
   4. **Initial Indexing:** As with development, the first time the `app` container starts, it will begin indexing data into Solr. This might take a long time. Subsequent starts will use the SQLite tracking database (`processed_messages.db`, which will be created inside the `/app` directory within the container if running fully dockerized) to only index new data.
+
+### Schema reindex
+
+When switching to a new version of this app and search doesn't work or causes reindexing issues, dump both volumes and restart the containers:
+
+```sh
+docker compose down --volume
+docker compose up -d
+```
+
+Reindexing may take some time depending on your slack workspace.
 
 ## Update emojis
 

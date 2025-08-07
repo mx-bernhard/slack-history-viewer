@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/js": "latest",
+    "@slack/web-api": "7.9.3",
     "@types/express": "^5.0.0",
     "@types/glob": "^8.1.0",
     "@types/lodash-es": "4.17.12",

@@ -1,23 +1,26 @@
+import { isEmpty, thru } from 'lodash-es';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useEmoji } from '../../contexts/emoji-context';
 import { useUsers } from '../../contexts/user-context';
 import { useStore } from '../../store';
-import {
+import type {
+  Block,
+  RichTextBlock,
+  RichTextBlockElement,
   RichTextElement,
-  SectionBlockType,
-  SlackBlock,
-  SlackUser,
-} from '../../types';
+  SectionBlockRenderer as SdkSectionBlockRenderer,
+} from '@slack/web-api';
 import { getHighlighted } from '../get-highlighted';
-import { isEmpty, thru } from 'lodash-es';
+import { ReactElement, ReactNode } from 'react';
+import { isNever } from 'typed-assert';
 
 export const BlockRenderer = ({
   blocks,
   messageTs,
   messageInSearchResults,
 }: {
-  blocks: SlackBlock[];
+  blocks: Block[];
   messageTs: string;
   messageInSearchResults: boolean;
 }) => {
@@ -37,114 +40,139 @@ export const BlockRenderer = ({
   );
 };
 
-// Renders an individual block based on its type
 const BlockItem = ({
   block,
   messageTs,
   messageInSearchResults,
 }: {
-  block: SlackBlock;
+  block: Block;
   messageTs: string;
   messageInSearchResults: boolean;
 }) => {
   switch (block.type) {
     case 'rich_text':
       return (
-        <RichTextBlock
-          elements={block.elements ?? []}
-          messageTs={messageTs}
-          messageInSearchResults={messageInSearchResults}
-        />
+        <div className="rich-text-block">
+          <RichTextBlockRenderer
+            elements={(block as RichTextBlock).elements}
+            messageTs={messageTs}
+            messageInSearchResults={messageInSearchResults}
+          />
+        </div>
       );
     case 'section':
-      return <SectionBlock block={block as SectionBlockType} />;
-    // Add other block type cases here as needed (e.g., 'divider', 'image', 'actions', 'context')
+      return <SectionBlockRenderer block={block as SdkSectionBlockRenderer} />;
     default:
-      // Keep the default for unhandled types
       return (
         <div className="unsupported-block">
-          {block.type} block type not supported
+          <span>{block.type} block type not supported</span>
         </div>
       );
   }
 };
 
-// Renders a rich text block containing multiple elements
-const RichTextBlock = ({
+const RichTextBlockRenderer = ({
   elements,
   messageTs,
   messageInSearchResults,
 }: {
-  elements: RichTextElement[];
+  elements: RichTextBlockElement[];
   messageTs: string;
   messageInSearchResults: boolean;
 }) => {
-  return (
-    <div className="rich-text-block">
-      {elements.map((element, elementIndex) => (
-        <ElementRenderer
-          key={elementIndex}
-          element={element}
-          messageTs={messageTs}
-          messageInSearchResults={messageInSearchResults}
-        />
-      ))}
-    </div>
-  );
+  return elements.map((element, elementIndex) => (
+    <RichTextElementRenderer
+      key={elementIndex}
+      element={element}
+      messageTs={messageTs}
+      messageInSearchResults={messageInSearchResults}
+    />
+  ));
 };
 
-// Renders an individual element based on its type
-const ElementRenderer = ({
+const RichTextElementRenderer = ({
   element,
   messageTs,
   messageInSearchResults,
 }: {
-  element: RichTextElement;
+  element: RichTextBlockElement;
   messageTs: string;
   messageInSearchResults: boolean;
 }) => {
+  if (element.type === 'rich_text_list') {
+    return (
+      <ul>
+        {element.elements.map((e, i) => (
+          <li key={i} style={{ listStyle: 'inside' }}>
+            <RichTextElementRenderer
+              element={e}
+              messageInSearchResults={messageInSearchResults}
+              messageTs={messageTs}
+            />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  const elements = (
+    <RichTextElementsRenderer
+      elements={element.elements}
+      messageTs={messageTs}
+      messageInSearchResults={messageInSearchResults}
+    />
+  );
   switch (element.type) {
     case 'rich_text_section':
-      return (
-        <RichTextSection
-          elements={element.elements ?? []}
-          messageTs={messageTs}
-          messageInSearchResults={messageInSearchResults}
-        />
-      );
+      return <span className="rich-text-section">{elements}</span>;
     case 'rich_text_quote':
       return (
-        <RichTextQuote
-          elements={element.elements ?? []}
-          messageTs={messageTs}
-          messageInSearchResults={messageInSearchResults}
-        />
+        <blockquote className="rich-text-quote">
+          <span className="rich-text-section">{elements}</span>
+        </blockquote>
       );
+    case 'rich_text_preformatted':
+      return <pre>{elements}</pre>;
     default:
-      return <div className="unsupported-element">{element.type}</div>;
+      isNever(element);
   }
 };
 
-type GetUserByIdFn = (userId: string) => SlackUser | undefined;
-// Re-add ParseEmojiFn type definition
-type ParseEmojiFn = (text: string) => string;
+const RichTextElementsRenderer = ({
+  elements,
+  messageTs,
+  messageInSearchResults,
+  wrapElement = ({ children }) => children,
+}: {
+  elements: RichTextElement[];
+  messageTs: string;
+  messageInSearchResults: boolean;
+  wrapElement?: ({ children }: { children: ReactNode }) => ReactNode;
+}) =>
+  elements
+    .map((element, index) => (
+      <TextElement
+        key={index}
+        element={element}
+        messageTs={messageTs}
+        messageInSearchResults={messageInSearchResults}
+      />
+    ))
+    .map(reactElement => wrapElement({ children: reactElement }));
 
 const emptyStringArray: string[] = [];
 
-// Renders individual text elements with proper formatting
 const TextElement = ({
   element,
-  getUserById,
-  parseEmoji,
   messageTs,
   messageInSearchResults,
 }: {
   element: RichTextElement;
-  getUserById: GetUserByIdFn;
-  parseEmoji: ParseEmojiFn;
   messageTs: string;
   messageInSearchResults: boolean;
 }) => {
+  const { getUserById } = useUsers();
+  const { parseEmoji } = useEmoji();
+
   const { highlightPhrases, isCurrentSearchResult } = useStore(
     ({
       currentResultIndex,
@@ -177,7 +205,7 @@ const TextElement = ({
 
   switch (type) {
     case 'text': {
-      const textContent = element.text ?? '';
+      const textContent = element.text;
       const maybeHighlightedText = getHighlighted(
         textContent,
         highlightPhrases,
@@ -198,7 +226,7 @@ const TextElement = ({
       return <span>{maybeHighlightedText}</span>;
     }
     case 'link': {
-      const url = element.url ?? '#';
+      const url = element.url;
       const linkText = thru(element.text?.trim(), text =>
         text == null || isEmpty(text) ? url : text
       );
@@ -209,20 +237,16 @@ const TextElement = ({
       );
     }
     case 'emoji': {
-      const name = element.name ?? '';
+      const name = element.name;
       if (!name) {
-        return null; // Don't render anything if name is missing
+        return null;
       }
-      // Construct the Slack-style code
       const emojiCode = `:${name}:`;
-      // Call the parseEmoji function from the context
       const emojiHtml = parseEmoji(emojiCode);
 
-      // Render the result (which is either an <img> tag or the original code)
-      // using dangerouslySetInnerHTML
       return (
         <span
-          className="emoji emoji-rendered" // Use a general class
+          className="emoji emoji-rendered"
           aria-label={name}
           dangerouslySetInnerHTML={{ __html: emojiHtml }}
         />
@@ -230,7 +254,7 @@ const TextElement = ({
     }
 
     case 'user': {
-      const userId = element.user_id ?? '';
+      const userId = element.user_id;
       const user = getUserById(userId);
       const displayName =
         user?.profile.display_name ??
@@ -244,118 +268,51 @@ const TextElement = ({
       return (
         <span className="unsupported-text">
           {/* Fallback for unknown types */}
+          unsupported type: {type}
         </span>
       );
   }
 };
 
-const SectionBlock = ({
+const SectionBlockRenderer = ({
   block,
 }: {
-  block: SectionBlockType;
-}): React.JSX.Element => {
-  // Helper for rendering markdown safely
+  block: SdkSectionBlockRenderer;
+}): ReactElement => {
   const renderMarkdown = (
     text: string | undefined | null
-  ): React.JSX.Element | null => {
+  ): ReactElement | null => {
     if (typeof text === 'string' && text.trim() !== '') {
       return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
     }
     return null;
   };
-  // Helper for rendering plain text safely
+
   const renderPlainText = (
     text: string | undefined | null
   ): React.JSX.Element | null => {
     if (typeof text === 'string' && text.trim() !== '') {
-      return <p>{text}</p>; // Render plain text in a paragraph
+      return <p>{text}</p>;
     }
     return null;
   };
 
-  // Explicitly return the JSX structure
   return (
     <div className="section-block">
-      {/* Render top-level text safely */}
       {block.text?.type === 'mrkdwn' && renderMarkdown(block.text.text)}
       {block.text?.type === 'plain_text' && renderPlainText(block.text.text)}
 
-      {/* Render fields if they exist */}
       {block.fields && block.fields.length > 0 && (
         <div className="section-fields">
           {block.fields.map((field, index) => (
             <div key={index} className="section-field">
-              {/* Render field text safely */}
               {field.type === 'mrkdwn' && renderMarkdown(field.text)}
-              {
-                field.type !== 'mrkdwn' &&
-                  renderPlainText(field.text) /* Treat non-mrkdwn as plain */
-              }
+              {field.type !== 'mrkdwn' && renderPlainText(field.text)}
             </div>
           ))}
         </div>
       )}
       {/* TODO: Render accessory if needed */}
     </div>
-  );
-};
-
-// --- RichTextSection & RichTextQuote ----
-// Ensure these components pass the parseEmoji prop down
-export const RichTextSection = ({
-  elements,
-  messageTs,
-  messageInSearchResults,
-}: {
-  elements: RichTextElement[];
-  messageTs: string;
-  messageInSearchResults: boolean;
-}) => {
-  const { getUserById } = useUsers();
-  const { parseEmoji } = useEmoji(); // Get parseEmoji from context
-
-  return (
-    <span className="rich-text-section">
-      {elements.map((element, index) => (
-        <TextElement
-          key={index}
-          element={element}
-          getUserById={getUserById}
-          parseEmoji={parseEmoji}
-          messageTs={messageTs}
-          messageInSearchResults={messageInSearchResults}
-        />
-      ))}
-    </span>
-  );
-};
-
-export const RichTextQuote = ({
-  elements,
-  messageTs,
-  messageInSearchResults,
-}: {
-  elements: RichTextElement[];
-  messageTs: string;
-  messageInSearchResults: boolean;
-}) => {
-  const { getUserById } = useUsers();
-  const { parseEmoji } = useEmoji(); // Get parseEmoji from context
-
-  return (
-    <blockquote className="rich-text-quote">
-      <span className="rich-text-section">
-        {elements.map((element, index) => (
-          <TextElement
-            key={index}
-            element={element}
-            getUserById={getUserById}
-            parseEmoji={parseEmoji}
-            messageTs={messageTs}
-            messageInSearchResults={messageInSearchResults}
-          />
-        ))}
-      </span>
-    </blockquote>
   );
 };

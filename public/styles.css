@@ -23,6 +23,22 @@
   position: relative;
 }
 
+pre {    
+    border: 1px solid rgba(232,232,232,.13);
+    background: rgba(232,232,232,.04);
+    font-variant-ligatures: none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    word-break: normal;
+    tab-size: 4;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    padding: 8px;
+    font-size: 12px;
+    line-height: 1.50001;
+    font-family: Monaco,Menlo,Consolas,Courier New,monospace !important;
+}
+
 .rich-text-quote::before {
   content: "";
   position: absolute;

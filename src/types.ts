@@ -144,7 +144,7 @@ export interface RichTextElement {
 // See: https://api.slack.com/reference/block-kit/blocks
 // Structure for top-level blocks in messages
 export interface SlackBlock {
-  type: string;
+  type: 'section' | 'rich_text';
   block_id?: string;
   elements?: RichTextElement[]; // Used in rich_text blocks
   // Add other block-specific properties based on type
