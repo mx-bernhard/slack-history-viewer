@@ -1,9 +1,7 @@
 import { SlackUser } from '../types';
 
-// Type for the function provided by UserContext to look up users
 type GetUserByIdFn = (userId: string) => SlackUser | undefined;
 
-// Type for the function provided by EmojiContext to parse emoji codes
 type ParseEmojiFn = (text: string) => string;
 
 /**
@@ -23,23 +21,16 @@ export const parseSlackMessage = (
 
   let processedText = text;
 
-  // 1. Replace user mentions (<@U12345678>)
   processedText = processedText.replace(
     /<@([A-Z0-9]+)>/g,
     (_, userId: string) => {
       const user = getUserById(userId);
       const userName = user?.profile.display_name ?? user?.name ?? userId;
-      // For now, just return the @mention text, maybe link later?
       return `@${userName}`;
     }
   );
 
-  // 2. Replace emoji using the provided function
   processedText = parseEmoji(processedText);
 
-  // TODO: Implement basic markdown (bold, italic, strike, code)
-  // TODO: Implement channel links (<#C12345678>)
-
-  // For now, return the processed string. Later, we might return JSX.
   return processedText;
 };

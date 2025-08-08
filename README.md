@@ -28,35 +28,44 @@ See the full license text in the `LICENSE` file.
 - Display emoji reactions with user lists on hover.
 - Full-text search across all messages.
 - Efficient loading and display using virtual scrolling (`react-window`).
-- Server-Side Rendering (SSR) for initial load performance.
 - Indexed fields
   - chat_id_s: technical chat id
-  - ts_l: timestamp as epoch number in ms
-  - ts_dt: timestamp of message, use, e.g., [date range queries](https://solr.apache.org/guide/solr/latest/indexing-guide/date-formatting-math.html#date-math-syntax) to restrict search
+  - ts_dt: timestamp of message in iso 8601 format. This allows, e.g., [date range
+    queries](https://solr.apache.org/guide/solr/latest/indexing-guide/date-formatting-math.html#date-math-syntax)
+    to restrict search
+  - thread_ts_dt: timestamp of thread starting message in iso 8601 format. This allows, e.g., [date
+    range
+    queries](https://solr.apache.org/guide/solr/latest/indexing-guide/date-formatting-math.html#date-math-syntax)
+    to restrict search
   - text_txt_en: the actual text mesage
   - chat_type_s: type of chat ("channel", "dm", "group", "mpim" and maybe more)
   - channel_name_s: name of the chat or channel, depends on chat_type_s
   - user_name_s: user name of message author
-  - user_display_name_s: display name of message author
+  - user_display_name_s: display name of message author, value may not be available for all users as
+    it is optional
   - user_real_name_s: real name of message author
+  - message_index_l: zero-based position within the chat
+  - thread_message_b: "true" if this is a message in a thread else "false"
+  - file_path_s: file path within the data dir
   - url_ss: all urls mentioned in the message as a solr array field
+  - ts_s: timestamp of message as string in epoch seconds including 6 decimal places
+  - thread_ts_s: timestamp of thread starting message as string in epoch seconds including 6 decimal places
 
 ## Future Enhancements
 
 While the viewer covers core functionality, potential future enhancements include:
 
 - Custom Emoji Display: Support for rendering custom emojis included in the Slack export.
-
-## Project Structure
-
-- `data/`: Place your unpacked Slack export data from the result of exporting (not archiving) via
-  slackdump (JSON files per channel/DM, user data, channel data, attachments).
-- `src/`: Frontend React application code (components, hooks, types, etc.).
-- `public/`: Static assets served directly.
-- `server.tsx`: Express server handling API requests, SSR, and static file serving.
-- `vite.config.ts`: Vite configuration.
-- `tsconfig.json`: TypeScript configuration.
-- `package.json`: Project dependencies and scripts.
+- Add more context types:
+  - forwarded message with link that navigates to the message
+  - ...
+- when navigating through search result, move to message after measure infos are reported
+- highlight the message itself, not just the search text. The search text is not always available
+  but the message is.
+- show tree structure by chat types
+- combine multiple messages from the same user in one block instead of multiple blocks with meta infos for each.
+- localize all texts
+- search input history
 
 ## Configuration
 
@@ -73,22 +82,15 @@ To run the Slack Export Viewer locally for development:
    - Node.js (22.x or higher, LTS version recommended)
    - Yarn via corepack / nvm (.nvmrc included)
    - Docker (for running the Solr search engine)
-   - Docker Compose (for managing the Solr service)
+   - Docker Compose (for managing the Solr service, the app or both)
 
-2. **Clone the repository:**
-
-   ```bash
-   git clone <your-repo-url>
-   cd <repository-directory>
-   ```
-
-3. **Place Slack Export Data:**
+2. **Place Slack Export Data:**
    - Download your Slack workspace export and unzip it.
    - Either:
      - Place the **contents** of the unzipped folder into a directory named `data` in the project root.
      - OR: Set the `SLACK_HISTORY_DATA_PATH` environment variable to the path of the unzipped export directory when running the development server (e.g., `SLACK_HISTORY_DATA_PATH=/path/to/your/export yarn dev`).
 
-4. **Install Dependencies:**
+3. **Install Dependencies:**
 
    ```bash
    nvm use
@@ -96,7 +98,7 @@ To run the Slack Export Viewer locally for development:
    yarn install
    ```
 
-5. **Run Development Server:**
+4. **Run Development Server:**
 
    There are two main ways to run during development:
 
@@ -134,7 +136,7 @@ To run the Slack Export Viewer locally for development:
 
    In either setup, the Slack Viewer should be accessible in your browser at `http://localhost:5173`.
 
-6. **Initial Search Indexing:**
+5. **Initial Search Indexing:**
    - When you start the application server for the first time (either locally via `yarn dev` or in Docker), it will automatically begin building the Solr search index from your Slack data.
    - **This initial indexing process can take a significant amount of time**, depending on the size of your Slack export. Monitor the server logs for progress.
    - Subsequent server starts will be much faster, as the system uses a local SQLite database (`processed_messages.db` created in the project root) to track already indexed messages and will only index new ones.

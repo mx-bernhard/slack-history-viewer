@@ -1,14 +1,13 @@
 import { CSSProperties, SyntheticEvent } from 'react';
 import { SlackFile } from '../types';
 
-// Basic check for common image mimetypes
 const isImage = (mimetype: string): boolean => {
   return [
     'image/png',
     'image/jpeg',
     'image/gif',
     'image/webp',
-    'image/jpg', // Add jpg as a common alias
+    'image/jpg',
   ].includes(mimetype.toLowerCase());
 };
 
@@ -25,7 +24,6 @@ const getFileUrl = (
   return '#';
 };
 
-// Simple component to render a file, either as an image preview or a download link
 export const FileRenderer = ({
   file,
   onImageLoad,
@@ -35,11 +33,9 @@ export const FileRenderer = ({
   onImageLoad?: (height: number, url: string) => void;
   chatId: string;
 }) => {
-  // Construct the URL using chatId
-  // Example: /data/D123ABC/attachments/image.png
   const fileUrl = getFileUrl(file, chatId);
   const isImageType = isImage(file.mimetype ?? '');
-  // Use the same logic for displayUrl, which depends on fileUrl
+
   const displayUrl = isImageType ? fileUrl : null;
 
   const handleLoad = (event: SyntheticEvent<HTMLImageElement>) => {
@@ -49,23 +45,20 @@ export const FileRenderer = ({
   };
 
   const handleError = (event: SyntheticEvent<HTMLImageElement>) => {
-    // Hide the image element if it fails to load
     event.currentTarget.style.display = 'none';
-    // Optionally, render a fallback or log an error
+
     console.error('Failed to load image:', displayUrl);
   };
 
-  // Define consistent styling for previews
   const imageStyle: CSSProperties = {
-    maxWidth: '360px', // Match thumb_360 max width
-    maxHeight: '200px', // Limit height to prevent huge images
-    display: 'block', // Ensure it takes block space
-    marginTop: '5px', // Add some space above
-    borderRadius: '4px', // Slightly rounded corners
-    border: '1px solid #ccc', // Subtle border
+    maxWidth: '360px',
+    maxHeight: '200px',
+    display: 'block',
+    marginTop: '5px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
   };
 
-  // Explicit check for imageUrl being non-null
   if (isImageType && fileUrl != null) {
     return (
       <div className="file-item file-image-preview">
@@ -85,7 +78,6 @@ export const FileRenderer = ({
       </div>
     );
   } else {
-    // Render a download link for non-image files
     return (
       <div className="file-item file-download-link">
         <a
@@ -101,7 +93,6 @@ export const FileRenderer = ({
   }
 };
 
-// Component to render a list of files
 export const FilesRenderer = ({
   files,
   onImageLoad,
@@ -111,7 +102,6 @@ export const FilesRenderer = ({
   onImageLoad?: (height: number, url: string) => void;
   chatId: string;
 }) => {
-  // Simplify the check for an empty array
   if (files.length === 0) {
     return null;
   }

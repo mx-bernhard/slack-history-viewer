@@ -18,8 +18,8 @@ export const SearchInput = () => {
     ({
       actions: { setSearchQueryInput, navigateToResult, setLimit },
       searchQueryInput,
-      searchQuery, // Assuming the final debounced query is here
-      searchResults, // Assuming this holds the timestamps or can derive length
+      searchQuery,
+      searchResults,
       currentResultIndex,
       limit,
     }) => ({
@@ -27,7 +27,7 @@ export const SearchInput = () => {
       searchQueryInput,
       navigateToResult,
       searchQuery,
-      // Derive total results from searchResults (assuming it's an array or similar)
+
       searchResults: Array.isArray(searchResults)
         ? searchResults
         : constantArray,
@@ -53,7 +53,6 @@ export const SearchInput = () => {
     [setLimit]
   );
 
-  // Determine if navigation should be shown
   const totalResults = searchResults.length;
   const showNav = searchQuery !== '' && totalResults > 0;
   const isPrevDisabled = currentResultIndex <= 0;

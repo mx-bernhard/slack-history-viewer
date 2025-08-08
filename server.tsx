@@ -1,10 +1,17 @@
+import compression from 'compression';
+import 'dotenv/config';
+import express, { Request, Response } from 'express';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { identity, sortBy, uniq } from 'lodash-es';
+import * as memoizePkg from 'micro-memoize';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import express, { Request, Response } from 'express';
 import {
+  findChatDirectoryPath,
   getAllChats,
+  getDataBasePath,
+  getFiles,
   getMessagesForChat,
   initDataLoader,
   loadUsers,
@@ -12,16 +19,18 @@ import {
 import {
   buildSearchIndex,
   searchMessages,
+  SolrQueryResponse,
 } from './src/server/search-indexer.js';
-import 'dotenv/config';
+import { search } from './src/server/solr-api.js';
 
-// Define type for expected search query parameters
+const memoize =
+  memoizePkg.default as unknown as typeof memoizePkg.default.default;
+
 interface SearchQuery {
   q?: string;
   limit?: string;
 }
 
-// Define the expected shape of the SSR module
 interface SsrModule {
   render: (url: string) => Promise<string>;
 }
@@ -34,14 +43,13 @@ const dataDir: string =
   process.env.SLACK_HISTORY_DATA_PATH ?? path.resolve(projectRoot, 'data');
 
 async function createServer() {
-  // Check if data directory exists and Initialize Data Loader
   try {
     const stats = await fsPromises.stat(dataDir);
     if (!stats.isDirectory()) {
       throw new Error(`Specified data path is not a directory: ${dataDir}`);
     }
     console.log(`Server using data directory: ${dataDir}`);
-    // Initialize the data loader with the verified path
+
     await initDataLoader(dataDir);
   } catch (error: unknown) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
@@ -52,15 +60,14 @@ async function createServer() {
     } else {
       console.error(`Error accessing data directory ${dataDir}:`, error);
     }
-    process.exit(1); // Exit if data directory is invalid
+    process.exit(1);
   }
 
   const app = express();
+  app.use(compression());
 
-  // Common middleware (API endpoints, static data dir)
   app.use('/data', express.static(dataDir));
 
-  // --- API Endpoints ---
   app.get('/api/chats', async (_req: Request, res: Response) => {
     try {
       const chats = await getAllChats();
@@ -70,14 +77,123 @@ async function createServer() {
       res.status(500).json({ error: 'Failed to load chat list' });
     }
   });
+  app.get(
+    '/api/messages/:chatId/count',
+    async (
+      req: Request<{ chatId: string }>,
+      res: Response<{ total: number } | { error: string }>
+    ) => {
+      try {
+        const { chatId } = req.params;
+        const searchResponse = await search({
+          q: 'thread_message_b: false AND chat_id_s: ' + chatId,
+          rows: 0,
+          start: 0,
+        });
+        res.json({ total: searchResponse.response.numFound });
+      } catch {
+        res.status(500).json({ error: 'Failed to compute messages meta info' });
+      }
+    }
+  );
 
+  const extractFilePaths = (searchResponse: SolrQueryResponse) =>
+    uniq(searchResponse.response.docs.map(doc => doc.file_path_s));
+
+  const getThread = memoize(
+    async (chatId: string, threadTs: string) => {
+      const threadSearchResponse = await search({
+        q: `thread_message_b: true AND chat_id_s: ${chatId} AND thread_ts: ${threadTs}`,
+        rows: 10000,
+        start: 0,
+      });
+      const filePaths = extractFilePaths(threadSearchResponse);
+      const messageInfos = (await getMessagesForChat(chatId, filePaths)).map(
+        messageInfo => messageInfo.message
+      );
+      const threadMessages = messageInfos.filter(
+        msg => msg.thread_ts === threadTs
+      );
+      return threadMessages;
+    },
+    { isPromise: true, maxSize: 300 }
+  );
   app.get(
     '/api/messages/:chatId',
-    async (req: Request<{ chatId: string }>, res: Response) => {
+    async (
+      req: Request<
+        { chatId: string },
+        object,
+        object,
+        { start?: string; rows?: string } | { threadTs?: string } | object
+      >,
+      res: Response
+    ) => {
       const { chatId } = req.params;
+      const query = req.query;
       try {
-        const messages = (await getMessagesForChat(chatId)).map(m => m.message);
-        res.json(messages);
+        if ('rows' in query && 'start' in query) {
+          const { rows: rowsQueryParam, start: startQueryParam } = query;
+
+          if (rowsQueryParam != null && startQueryParam != null) {
+            const rows = Number(rowsQueryParam);
+            const start = Number(startQueryParam);
+            const searchResponse = await search({
+              q: `chat_id_s: ${chatId} AND message_index_l: [${String(start)} TO ${String(start + rows)}]`,
+              rows: rows,
+              start: 0,
+            });
+            const filePaths = extractFilePaths(searchResponse);
+            const messageIds = new Set(
+              searchResponse.response.docs.map(m => m.id)
+            );
+            const basePath = getDataBasePath();
+            const messageInfos = await getMessagesForChat(
+              chatId,
+              filePaths.map(filePath => path.join(basePath, filePath))
+            );
+            const messagesWithinRequestWindow = messageInfos
+              .map(message => message.message)
+              .filter(
+                message =>
+                  (message.thread_ts === message.ts ||
+                    message.thread_ts == null) &&
+                  messageIds.has(`${chatId}_${message.ts}`)
+              );
+
+            res
+              .contentType('application/json')
+              .send(
+                JSON.stringify(
+                  messagesWithinRequestWindow,
+                  undefined,
+                  undefined
+                )
+              );
+          } else {
+            res
+              .status(400)
+              .send({ error: 'No query values rows and start without value' });
+          }
+          return;
+        }
+        if ('threadTs' in query && query.threadTs != null) {
+          const chatThreads = await getThread(chatId, query.threadTs);
+          res.json(chatThreads);
+          return;
+        }
+        const chatDirectoryPath = await findChatDirectoryPath(chatId);
+        if (chatDirectoryPath == null) {
+          res
+            .status(400)
+            .json({ error: 'Could not find chat files for ' + chatId });
+          return;
+        }
+        const allMessagesOfChat = await getMessagesForChat(
+          chatId,
+          sortBy(await getFiles(chatDirectoryPath, 'all'), identity)
+        );
+        res.json(allMessagesOfChat.map(m => m.message));
       } catch (error) {
         console.error(`Error fetching messages for chat ${chatId}:`, error);
         res
@@ -125,9 +241,7 @@ async function createServer() {
     }
   );
 
-  // --- Environment-Specific Middleware & SSR ---
   if (!isProduction) {
-    // === DEVELOPMENT ===
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -135,10 +249,8 @@ async function createServer() {
       root: projectRoot,
     });
 
-    // Use vite's connect instance as middleware for HMR etc.
     app.use(vite.middlewares);
 
-    // Development SSR Handler (uses vite)
     app.use(async (req, res, next) => {
       const url = req.originalUrl;
       if (
@@ -174,15 +286,12 @@ async function createServer() {
       }
     });
   } else {
-    // === PRODUCTION ===
-    // Serve static files from dist/client
     app.use(
       express.static(path.resolve(projectRoot, 'client'), {
         index: false,
       })
     );
 
-    // Production SSR Handler (reads built files)
     app.use(async (req, res, next) => {
       const url = req.originalUrl;
       if (
@@ -239,7 +348,6 @@ async function createServer() {
     });
   }
 
-  // --- Start Server ---
   app.listen(5173, () => {
     console.log('-------------------------------------------');
     console.log(
@@ -255,8 +363,6 @@ async function createServer() {
     }
     console.log('-------------------------------------------');
 
-    // Trigger index build only in development? Or always?
-    // Let's assume it should always run if data changes
     buildSearchIndex().catch((err: unknown) => {
       console.error('Background search index build failed:', err);
     });

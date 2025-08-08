@@ -1,22 +1,8 @@
-/* Add styles for Slack message block components */
-
-/* Container for blocks */
-.blocks-container {
-  margin-top: 4px;
-}
-
-/* Rich text block */
-.rich-text-block {
-  margin-bottom: 4px;
-}
-
-/* Rich text section */
 .rich-text-section {
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-/* Rich text quote */
 .rich-text-quote {
   margin: 4px 0;
   padding: 0 0 0 12px;
@@ -50,20 +36,19 @@ pre {
   border-radius: 2px;
 }
 
-/* Attachment styles */
 .attachment-container {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: row;
+  row-gap: 4px;
 }
 
 .attachment-item {
-  margin-bottom: 8px;
-  padding: 8px;
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
-/* Service unfurl styling (YouTube, etc.) */
+
 .attachment-item.service-unfurl {
   display: flex;
   flex-direction: column;
@@ -95,7 +80,6 @@ pre {
   width: 100%;
 }
 
-/* Service unfurl image - specifically for services like YouTube */
 .service-unfurl-image {
   max-width: 100%;
   min-height: 150px;
@@ -173,9 +157,7 @@ pre {
   font-size: 0.9em;
 }
 
-/* Attachment image styles */
 .attachment-image-container {
-  margin: 6px 0;
   max-width: 100%;
   display: block;
 }
@@ -187,7 +169,7 @@ pre {
 
 .attachment-image {
   max-width: 100%;
-  max-height: 300px; /* Limit height to 300px */
+  max-height: 300px; 
   border-radius: 4px;
   cursor: pointer;
   display: block;
@@ -219,7 +201,6 @@ pre {
   margin-right: 6px;
 }
 
-/* Code formatting */
 code {
   background-color: #373737;
   border-radius: 3px;
@@ -228,7 +209,6 @@ code {
   font-size: 0.9em;
 }
 
-/* Link styling */
 a {
   color: #0366d6;
   text-decoration: none;
@@ -238,14 +218,13 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Emoji styling */
 .emoji {
   font-size: 1.2em;
   line-height: 1;
   vertical-align: -0.1em;
 }
 
-/* Style for img tags used for emojis */
+
 .emoji-image {
   width: 1.25em;
   height: 1.25em;
@@ -262,7 +241,6 @@ a:hover {
   image-rendering: auto;
 }
 
-/* Container span for images set via dangerouslySetInnerHTML */
 .emoji-image-container {
   line-height: 0;
 }
@@ -274,7 +252,7 @@ a:hover {
   padding: 0 2px;
 }
 
-/* Unsupported elements */
+
 .unsupported-block,
 .unsupported-element,
 .unsupported-text {
@@ -361,25 +339,21 @@ a:hover {
   font-size: 0.9em;
 }
 
-/* Mark styling for search highlights */
+
 mark {
   background-color: #fff2b3;
   padding: 0 2px;
   border-radius: 2px;
 }
 
-/* Bold text */
+
 strong {
   font-weight: 600;
 }
 
-/* Add styles for thread indicator and thread panel */
-
-/* Thread indicator */
 .thread-indicator {
   display: inline-flex;
   align-items: center;
-  margin-top: 4px;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.9em;
@@ -399,7 +373,7 @@ strong {
   font-size: 1.1em;
 }
 
-/* Thread panel */
+
 .message-view-inner {
   display: flex;
   width: 100%;
@@ -462,6 +436,16 @@ strong {
   padding: 12px;
 }
 
+.message-content {
+  row-gap: 4px;
+  padding-bottom: 6px;
+}
+
+.message-row-content {
+  display: flex;
+  overflow: hidden;
+}
+
 .thread-messages .message-row {
   position: relative !important;
   margin-bottom: 16px;
@@ -469,7 +453,6 @@ strong {
   left: auto !important;
 }
 
-/* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .thread-indicator {
     color: #36c5f0;

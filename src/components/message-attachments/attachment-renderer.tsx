@@ -5,6 +5,7 @@ import { BlockRenderer } from '../message-blocks/block-renderer';
 interface AttachmentRendererProps {
   attachments: SlackAttachment[];
   onImageLoad?: (height: number, imageUrl: string) => void;
+  messageTs: string;
 }
 
 /**
@@ -13,6 +14,7 @@ interface AttachmentRendererProps {
 export const AttachmentRenderer: FC<AttachmentRendererProps> = ({
   attachments,
   onImageLoad,
+  messageTs,
 }) => {
   if (attachments.length === 0) {
     return null;
@@ -25,6 +27,7 @@ export const AttachmentRenderer: FC<AttachmentRendererProps> = ({
           key={index}
           attachment={attachment}
           onImageLoad={onImageLoad}
+          messageTs={messageTs}
         />
       ))}
     </div>
@@ -34,6 +37,7 @@ export const AttachmentRenderer: FC<AttachmentRendererProps> = ({
 interface AttachmentItemProps {
   attachment: SlackAttachment;
   onImageLoad?: (height: number, imageUrl: string) => void;
+  messageTs: string;
 }
 
 /**
@@ -42,6 +46,7 @@ interface AttachmentItemProps {
 const AttachmentItem: FC<AttachmentItemProps> = ({
   attachment,
   onImageLoad,
+  messageTs,
 }) => {
   const {
     title,
@@ -180,7 +185,7 @@ const AttachmentItem: FC<AttachmentItemProps> = ({
       {/* Render BLOCKS if they exist */}
       {hasBlocks && (
         <div className="attachment-blocks-container">
-          <BlockRenderer blocks={blocks} />
+          <BlockRenderer blocks={blocks} messageTs={messageTs} />
         </div>
       )}
 

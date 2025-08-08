@@ -11,24 +11,26 @@ import { useShallow } from 'zustand/react/shallow';
 import { createSearchQuery } from './api/use-queries';
 import { useIsClient } from './components/use-is-client';
 import { SearchResultDocument } from './server/search-indexer';
-import { getId } from './components/message-view';
 
 export interface SlackHistoryViewerStore {
   searchQueryInput: string;
   searchQuery: string;
   searchResults: Error | SearchResultDocument[] | 'loading' | null;
-  currentResultIndex: number; // -1 indicates no selection or focus
-  selectedChatId: string | null;
+  currentResultIndex: number;
   limit: number;
+  selectedChatId: string | null;
+  messageIndex: number | null;
+  selectedThreadTs?: string | null;
   actions: {
     setSelectedChatId: (chatId: string | null) => void;
+    setSelectedThreadTs: (threadTs: string | null) => void;
     setSearchQueryInput: (query: string) => void;
     setLimit: (value: number) => void;
     navigateToResult: (direction: 'prev' | 'next') => void;
     setSelectedResult: (id: string, chatId: string) => void;
-    getCurrentTargetId: () => string | null;
-    getSearchResults: () => SearchResultDocument[] | null;
+    getSearchResults: () => SearchResultDocument[];
     isCurrentSearchResult: (chatId: string, ts: string) => boolean;
+    isMessageInSearchResults: (messageTs: string) => boolean;
   };
 }
 
@@ -57,25 +59,48 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
       currentResultIndex: -1,
       selectedChatId: null,
       limit: 50,
+      selectedThreadTs: null,
+      messageIndex: null,
       actions: {
-        isCurrentSearchResult: (chatId: string, ts: string) => {
-          const { searchResults, currentResultIndex } = get();
-          if (!(searchResults instanceof Array)) return false;
-          const currentSearchResult = searchResults[currentResultIndex];
-          const isCurrentSearchResult =
+        isMessageInSearchResults: (messageTs: string) => {
+          const {
+            actions: { isCurrentSearchResult },
+            selectedChatId,
+          } = get();
+
+          return (
+            selectedChatId != null &&
+            isCurrentSearchResult(selectedChatId, messageTs)
+          );
+        },
+        isCurrentSearchResult: (chatId: string, messageTs: string) => {
+          const {
+            currentResultIndex,
+            actions: { getSearchResults },
+          } = get();
+          const currentSearchResult = getSearchResults()[currentResultIndex];
+          return (
             currentSearchResult != null &&
-            currentSearchResult.id === getId(chatId, ts);
-          return isCurrentSearchResult;
+            currentSearchResult.chatId === chatId &&
+            currentSearchResult.ts === messageTs
+          );
         },
         getSearchResults: () => {
           const { searchResults } = get();
           if (searchResults == null || searchResults instanceof Error)
-            return null;
-          if (searchResults === 'loading') return null;
+            return [];
+          if (searchResults === 'loading') return [];
           return searchResults;
         },
         setSelectedChatId: chatId => {
-          set({ selectedChatId: chatId });
+          set({
+            selectedChatId: chatId,
+            selectedThreadTs: null,
+            messageIndex: null,
+          });
+        },
+        setSelectedThreadTs: (threadTs: string | null) => {
+          set({ selectedThreadTs: threadTs });
         },
         setSearchQueryInput: (() => {
           const setSearchQuery = pDebounce(
@@ -84,7 +109,6 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
             300
           );
           return (query: string) => {
-            // Reset results and index when query changes
             set({
               searchQueryInput: query,
               currentResultIndex: -1,
@@ -117,7 +141,6 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
 
           let nextIndex = currentResultIndex;
           if (currentResultIndex === -1) {
-            // If nothing selected, 'next' goes to 0, 'prev' goes to last
             nextIndex = direction === 'prev' ? searchResults.length - 1 : 0;
           } else {
             nextIndex =
@@ -132,31 +155,19 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
               set({
                 currentResultIndex: nextIndex,
                 selectedChatId: searchResult.chatId,
+                messageIndex: searchResult.messageIndex,
+                selectedThreadTs: searchResult.threadTs ?? undefined,
               });
             }
           }
-          // Note: Scrolling is triggered by components reacting to currentResultIndex change
         },
         setSelectedResult: (id, chatId) => {
           const searchResults = get().actions.getSearchResults();
-          if (searchResults == null) return;
+          if (searchResults.length === 0) return;
           const index = searchResults.findIndex(sr => sr.id === id);
           if (index !== -1) {
             set({ currentResultIndex: index, selectedChatId: chatId });
           }
-          // Note: Scrolling is triggered by components reacting to currentResultIndex change
-        },
-        getCurrentTargetId: () => {
-          const { currentResultIndex } = get();
-          const searchResults = get().actions.getSearchResults();
-          if (searchResults == null) return null;
-          if (
-            currentResultIndex >= 0 &&
-            currentResultIndex < searchResults.length
-          ) {
-            return searchResults[currentResultIndex]?.id ?? null;
-          }
-          return null;
         },
       },
     };

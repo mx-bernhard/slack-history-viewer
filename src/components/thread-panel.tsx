@@ -1,43 +1,54 @@
-import { FC, useCallback, useEffect, useState } from 'react';
+import { FC, useCallback, useMemo } from 'react';
 import { useMessagesQuery } from '../api/use-queries';
 import { SlackMessage } from '../types';
 import { MessageRow } from './message-row';
+import { useStore } from '../store';
 
-interface ThreadPanelProps {
-  threadTs: string | null;
-  chatId: string;
-  onClose: () => void;
-}
+export const ThreadPanel: FC = () => {
+  const { setSelectedThreadTs, selectedChatId, selectedThreadTs } = useStore(
+    ({
+      actions: { setSelectedThreadTs },
+      selectedThreadTs,
+      selectedChatId,
+    }) => {
+      return {
+        setSelectedThreadTs,
+        selectedChatId,
+        selectedThreadTs,
+      };
+    }
+  );
+  const {
+    data: messages,
+    isLoading,
+    error,
+  } = useMessagesQuery(
+    selectedThreadTs != null
+      ? {
+          chatId: selectedChatId,
+          threadTs: selectedThreadTs,
+        }
+      : null
+  );
 
-export const ThreadPanel: FC<ThreadPanelProps> = ({
-  threadTs,
-  chatId,
-  onClose,
-}) => {
-  const [threadMessages, setThreadMessages] = useState<SlackMessage[]>([]);
-  const { data: messages, isLoading, error } = useMessagesQuery(chatId);
+  const onClose = useCallback(() => {
+    setSelectedThreadTs(null);
+  }, [setSelectedThreadTs]);
 
-  // Extract parent message and thread replies when threadTs changes
-  // Wrapped in useCallback to prevent unnecessary re-renders
-  const processThreadMessages = useCallback(() => {
-    if (threadTs == null || messages == null) {
-      setThreadMessages([]);
-      return;
+  const threadMessages = useMemo(() => {
+    if (messages == null) {
+      return [];
     }
 
-    // Find the parent message
-    const parentMessage = messages.find(msg => msg.ts === threadTs);
+    const parentMessage = messages.find(msg => msg.ts === selectedThreadTs);
 
-    if (!parentMessage) {
-      setThreadMessages([]);
-      return;
+    if (parentMessage == null) {
+      return [];
     }
 
-    // If the parent has a 'replies' array, use it to find reply messages
     const replyMessages: SlackMessage[] = [];
 
     if (parentMessage.replies && parentMessage.replies.length > 0) {
-      // Get all messages that match the ts values in the replies array
       parentMessage.replies.forEach(reply => {
         const replyMessage = messages.find(msg => msg.ts === reply.ts);
         if (replyMessage) {
@@ -45,32 +56,18 @@ export const ThreadPanel: FC<ThreadPanelProps> = ({
         }
       });
 
-      // Sort replies by timestamp (oldest first)
       replyMessages.sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
     } else {
-      // Fallback: Find all replies to this thread by thread_ts (older method)
       const replies = messages.filter(
-        msg => msg.thread_ts === threadTs && msg.ts !== threadTs
+        msg => msg.thread_ts === selectedThreadTs && msg.ts !== selectedThreadTs
       );
 
-      // Sort replies by timestamp (oldest first)
       replyMessages.push(
         ...replies.sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts))
       );
     }
-
-    // Combine parent message with replies
-    setThreadMessages([parentMessage, ...replyMessages]);
-  }, [threadTs, messages]);
-
-  // Use the callback in useEffect
-  useEffect(() => {
-    processThreadMessages();
-  }, [processThreadMessages]);
-
-  if (threadTs == null) {
-    return null;
-  }
+    return [parentMessage, ...replyMessages];
+  }, [selectedThreadTs, messages]);
 
   return (
     <div className="thread-panel">
@@ -93,9 +90,7 @@ export const ThreadPanel: FC<ThreadPanelProps> = ({
             <MessageRow
               onSizeMeasured={() => {}}
               key={message.ts}
-              style={{}} // No absolute positioning needed here
               message={message}
-              highlightQuery={null}
               index={index}
             />
           ))

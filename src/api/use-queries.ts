@@ -1,7 +1,6 @@
-import { QueryClient, useQuery } from '@tanstack/react-query';
+import { QueryClient, skipToken, useQuery } from '@tanstack/react-query';
 import { apiClient } from './api-client';
 
-// Chat list query hook
 export const useChatsQuery = () => {
   return useQuery({
     queryKey: ['chats'],
@@ -9,19 +8,36 @@ export const useChatsQuery = () => {
   });
 };
 
-// Messages query hook
-export const useMessagesQuery = (chatId: string | null) => {
+export const useMessagesQuery = (
+  args:
+    | { chatId: string | null; start: number; rows: number }
+    | { chatId: string | null; threadTs: string }
+    | null
+) => {
   return useQuery({
-    queryKey: ['messages', chatId],
+    queryKey: [
+      'messages',
+      ...(() => {
+        if (args == null) return [];
+
+        if ('rows' in args) {
+          return [args.start, args.rows, args.chatId];
+        }
+        if ('threadTs' in args) {
+          return [args.chatId, args.threadTs];
+        }
+        return [];
+      })(),
+    ],
     queryFn: () => {
-      if (chatId == null) return Promise.resolve([]);
-      return apiClient.getMessages(chatId);
+      if (args == null) return [];
+      if (args.chatId == null) return Promise.resolve([]);
+      return apiClient.getMessages(args.chatId, args);
     },
-    enabled: chatId != null, // Only run the query if chatId is provided
+    enabled: args?.chatId != null,
   });
 };
 
-// Users query hook
 export const useUsersQuery = () => {
   return useQuery({
     queryKey: ['users'],
@@ -29,7 +45,19 @@ export const useUsersQuery = () => {
   });
 };
 
-// Search query hook
+export const useChatInfoQuery = (chatId: string | null) => {
+  return useQuery({
+    queryKey: ['getChatInfo', chatId],
+    queryFn:
+      chatId != null
+        ? ({ queryKey: [_, chatId] }) => {
+            if (chatId == null) return null;
+            return apiClient.getChatInfo(chatId);
+          }
+        : skipToken,
+  });
+};
+
 export const createSearchQuery =
   (queryClient: QueryClient) => (query: string, limit: number) =>
     queryClient.fetchQuery({

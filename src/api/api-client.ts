@@ -12,7 +12,6 @@ export interface EmojiData {
   skin_tones?: boolean;
 }
 
-// Function to handle API errors consistently
 const handleApiError = (response: Response) => {
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status.toString()}`);
@@ -20,27 +19,39 @@ const handleApiError = (response: Response) => {
   return response.json();
 };
 
-// API client with methods for each endpoint
 export const apiClient = {
-  // Get list of chats
   getChats: async (): Promise<ChatInfo[]> => {
     const response = await fetch('/api/chats');
     return handleApiError(response) as Promise<ChatInfo[]>;
   },
 
-  // Get messages for a specific chat
-  getMessages: async (chatId: string): Promise<SlackMessage[]> => {
-    const response = await fetch(`/api/messages/${chatId}`);
+  getMessages: async (
+    chatId: string,
+    options?: { start: number; rows: number } | { threadTs: string }
+  ): Promise<SlackMessage[]> => {
+    const optionsSearch = (() => {
+      if (options == null) return '';
+      if ('rows' in options) {
+        return (
+          'rows=' + String(options.rows) + '&start=' + String(options.start)
+        );
+      } else if ('threadTs' in options) return 'thread_ts=' + options.threadTs;
+      return '';
+    })();
+    const response = await fetch(`/api/messages/${chatId}?${optionsSearch}`);
     return handleApiError(response) as Promise<SlackMessage[]>;
   },
 
-  // Get users
+  getChatInfo: async (chatId: string): Promise<{ total: number }> => {
+    const response = await fetch(`/api/messages/${chatId}/count`);
+    return handleApiError(response) as Promise<{ total: number }>;
+  },
+
   getUsers: async (): Promise<SlackUser[]> => {
     const response = await fetch('/api/users');
     return handleApiError(response) as Promise<SlackUser[]>;
   },
 
-  // Search for messages
   searchMessages: async (
     query: string,
     limit: number

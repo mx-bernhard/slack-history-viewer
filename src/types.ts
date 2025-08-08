@@ -1,5 +1,3 @@
-// Basic types for Slack entities based on export format
-
 export interface SlackUser {
   id: string;
   name: string;
@@ -8,42 +6,34 @@ export interface SlackUser {
     display_name?: string;
     real_name?: string;
     image_72?: string;
-    // Add other potential profile image sizes if needed
-    // image_24?: string;
-    // image_32?: string;
-    // image_48?: string;
-    // image_192?: string;
-    // image_512?: string;
   };
   is_bot?: boolean;
   deleted?: boolean;
-  is_admin?: boolean; // Added based on user data snippet
-  is_owner?: boolean; // Added based on user data snippet
-  is_primary_owner?: boolean; // Add this field
+  is_admin?: boolean;
+  is_owner?: boolean;
+  is_primary_owner?: boolean;
 }
 
 export interface SlackChannel {
   id: string;
   name: string;
-  is_channel?: boolean; // Public channel
-  is_group?: boolean; // Private channel
-  is_im?: boolean; // Direct message
-  is_mpim?: boolean; // Multi-person direct message
-  is_private?: boolean; // Indicates if a channel/group is private
+  is_channel?: boolean;
+  is_group?: boolean;
+  is_im?: boolean;
+  is_mpim?: boolean;
+  is_private?: boolean;
   is_archived?: boolean;
-  members?: string[]; // List of user IDs
-  user?: string; // For DMs, the user ID of the other person
+  members?: string[];
+  user?: string;
 }
 
-// A more specific type combining info for display
 export interface ChatInfo {
   id: string;
   name: string;
   technicalName: string | undefined;
   type: 'channel' | 'group' | 'dm' | 'mpim';
   isArchived: boolean;
-  otherMemberIds?: string[]; // Add optional array for other member IDs (for avatar lookup)
-  // Add other relevant info later if needed
+  otherMemberIds?: string[];
 }
 
 export interface SlackMessage {
@@ -52,18 +42,17 @@ export interface SlackMessage {
   user?: string;
   bot_id?: string;
   text?: string;
-  ts: string; // Timestamp, often used as unique ID within a day
-  thread_ts?: string; // Timestamp of the parent message in a thread
-  reply_count?: number; // Number of replies in a thread
-  reply_users_count?: number; // Number of users who replied in a thread
-  latest_reply?: string; // Timestamp of the latest reply
-  reply_users?: string[]; // Array of user IDs who have replied to the thread
-  replies?: Array<{ user: string; ts: string }>; // Array of references to reply messages
-  blocks?: SlackBlock[]; // Use the basic Block type
+  ts: string;
+  thread_ts?: string;
+  reply_count?: number;
+  reply_users_count?: number;
+  latest_reply?: string;
+  reply_users?: string[];
+  replies?: Array<{ user: string; ts: string }>;
+  blocks?: SlackBlock[];
   files?: SlackFile[];
   reactions?: SlackReaction[];
-  attachments?: SlackAttachment[]; // Add attachments
-  // Add other fields as needed
+  attachments?: SlackAttachment[];
 }
 
 export interface SlackReaction {
@@ -72,32 +61,19 @@ export interface SlackReaction {
   count: number;
 }
 
-// Define interfaces for Slack data structures
-// (Add other interfaces as needed)
-
 export interface SlackProfile {
   real_name?: string;
   display_name?: string;
   name?: string;
   image_72?: string;
-  // Add other profile fields if used
 }
 
-// Common properties for conversational items
 export interface SlackConversationalItemBase {
   id: string;
   name?: string;
   is_archived?: boolean;
-  // Add other common fields if needed
 }
 
-// disabled for now
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface SlackChannel extends SlackConversationalItemBase {
-  // Channel specific fields (e.g., topic, purpose)
-}
-
-// Assuming structure for Groups, DMs, MPIMs - Adjust if needed
 export interface SlackGroup extends SlackConversationalItemBase {
   members?: string[];
 }
@@ -110,7 +86,6 @@ export interface SlackMPIM extends SlackConversationalItemBase {
   members?: string[];
 }
 
-// Type for ChatInfo used in the UI
 export interface ChatInfo {
   id: string;
   name: string;
@@ -120,7 +95,6 @@ export interface ChatInfo {
   otherMemberIds?: string[];
 }
 
-// Rich Text Block Elements (Crucial for rendering)
 export interface RichTextStyle {
   bold?: boolean;
   italic?: boolean;
@@ -132,55 +106,41 @@ export interface RichTextElement {
   type: string;
   text?: string;
   url?: string;
-  name?: string; // Used for emoji type
-  user_id?: string; // Used for user type
+  name?: string;
+  user_id?: string;
   style?: RichTextStyle;
-  elements?: RichTextElement[]; // For nested structures like rich_text_section
-  // Allow other unknown properties Slack might add
+  elements?: RichTextElement[];
+
   [key: string]: unknown;
 }
 
-// Basic representation of a Slack Block Kit element
-// See: https://api.slack.com/reference/block-kit/blocks
-// Structure for top-level blocks in messages
 export interface SlackBlock {
   type: 'section' | 'rich_text';
   block_id?: string;
-  elements?: RichTextElement[]; // Used in rich_text blocks
-  // Add other block-specific properties based on type
-  text?: RichTextElement; // Used in section blocks (can be mrkdwn or plain_text)
-  fields?: RichTextElement[]; // Used in section blocks
+  elements?: RichTextElement[];
+
+  text?: RichTextElement;
+  fields?: RichTextElement[];
   accessory?: unknown;
-  // Allow other unknown properties
+
   [key: string]: unknown;
 }
 
-// Define a placeholder type for accessories or use unknown
-// Removed empty interface, use unknown instead
-// interface AccessoryElement {}
-
-// Define type for Section Block itself
 export interface SectionBlockType extends SlackBlock {
   type: 'section';
   text?: SectionField;
   fields?: SectionField[];
-  accessory?: unknown; // Use unknown for accessories
+  accessory?: unknown;
 }
 
-// More specific type for Section blocks (if needed, enhances SlackBlock)
 export interface SectionBlockType extends SlackBlock {
   type: 'section';
-  // text and fields are already in SlackBlock if typed correctly
 }
 
-// More specific type for Section fields (if needed, enhances RichTextElement)
-// Note: Slack often uses 'text' within 'fields', which itself has a type.
-// Reusing RichTextElement might be sufficient if its 'type' is checked (mrkdwn/plain_text)
 export interface SectionField extends RichTextElement {
   type: 'mrkdwn' | 'plain_text';
 }
 
-// Slack File object structure
 export interface SlackFile {
   id: string;
   created?: number;
@@ -237,7 +197,6 @@ export interface SlackFile {
   has_rich_preview?: boolean;
 }
 
-// Structure for attachments (legacy)
 export interface SlackAttachment {
   msg_subtype?: string;
   fallback?: string;
@@ -284,9 +243,9 @@ export interface SlackAttachment {
   video_html_height?: number;
   footer?: string;
   footer_icon?: string;
-  ts?: string; // Can be string or number
+  ts?: string;
   mrkdwn_in?: string[];
-  actions?: unknown[]; // Define actions more specifically if needed
+  actions?: unknown[];
   filename?: string;
   size?: number;
   mimetype?: string;
@@ -294,33 +253,30 @@ export interface SlackAttachment {
   metadata?: unknown;
 }
 
-// Structure for Reactions
 export interface SlackReaction {
   name: string;
   users: string[];
   count: number;
 }
 
-// Structure for individual message replies (simplified)
 export interface SlackReply {
   user: string;
   ts: string;
 }
 
-// Main Slack Message structure
 export interface SlackMessage {
   client_msg_id?: string;
   type: string;
-  subtype?: string; // Important for differentiating message types
+  subtype?: string;
   text?: string;
   user?: string;
   ts: string;
-  thread_ts?: string; // Indicates message is part of a thread
+  thread_ts?: string;
   reply_count?: number;
   reply_users_count?: number;
   latest_reply?: string;
   reply_users?: string[];
-  replies?: SlackReply[]; // Array of actual replies (newer format)
+  replies?: SlackReply[];
   subscribed?: boolean;
   last_read?: string;
   team?: string;
@@ -332,17 +288,13 @@ export interface SlackMessage {
     user: string;
     ts: string;
   };
-  user_profile?: SlackProfile; // Sometimes included directly
-  // Allow other unknown properties
-  [key: string]: unknown;
+  user_profile?: SlackProfile;
 }
 
-// Type for search results
 export interface SearchResultDocument {
-  id: string; // Unique ID for the result (e.g., chatid_timestamp)
+  id: string;
   chatId: string;
   ts: string;
   text: string;
   user: string;
-  // Add score or other relevance info if provided by search backend
 }

@@ -83,7 +83,8 @@ const ChatList = () => {
 
             if (chat.type === 'dm' && chat.otherMemberIds?.length === 1) {
               const otherUserId = chat.otherMemberIds[0];
-              const user = getUserById(otherUserId);
+              const user =
+                otherUserId != null ? getUserById(otherUserId) : null;
               const userDisplayName =
                 user?.profile.display_name ?? user?.name ?? 'User';
               const displayNameForAvatar = userDisplayName || '?';

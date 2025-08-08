@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
 import { glob } from 'glob';
-import { groupBy, sortBy } from 'lodash-es';
+import { groupBy, isEqual, sortBy } from 'lodash-es';
+import * as memoizePkg from 'micro-memoize';
 import { limitFunction } from 'p-limit';
 import path from 'path';
-import { isNotUndefined } from 'typed-assert';
 import { Database, open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import {
@@ -15,6 +15,9 @@ import {
   SlackMPIM,
   SlackUser,
 } from '../types.js';
+
+const memoize =
+  memoizePkg.default as unknown as typeof memoizePkg.default.default;
 
 let internalDataBasePath: string | null = null;
 
@@ -67,7 +70,7 @@ export async function initDataLoader(basePath: string): Promise<void> {
   }
 }
 
-function getDataBasePath(): string {
+export function getDataBasePath(): string {
   if (internalDataBasePath === null) {
     throw new Error(
       'Data loader has not been initialized. Call initDataLoader first.'
@@ -281,15 +284,16 @@ export async function getAllChats(): Promise<ChatInfo[]> {
 
 const debugLog = process.env.DEBUG_DATA_LOADER != null;
 
-async function findChatDirectoryPath(chatId: string): Promise<string | null> {
+export async function findChatDirectoryPath(
+  chatId: string
+): Promise<null | string> {
+  const logPrefix = '[findChatDirectoryPath] ';
   const basePath = getDataBasePath();
   const chats = await getAllChats();
   const chatInfo = chats.find(c => c.id === chatId);
 
   if (chatInfo == null) {
-    console.warn(
-      `[findChatDirectoryPath] Could not find chat info for ID: ${chatId}`
-    );
+    console.warn(`${logPrefix}Could not find chat info for ID: ${chatId}`);
     return null;
   }
   const nameCandidates = [
@@ -303,9 +307,7 @@ async function findChatDirectoryPath(chatId: string): Promise<string | null> {
       const stats = await fs.stat(namePath);
       if (stats.isDirectory()) {
         if (debugLog) {
-          console.log(
-            `[findChatDirectoryPath] Found directory using name: ${namePath}`
-          );
+          console.log(`${logPrefix}Found directory using name: ${namePath}`);
         }
         return namePath;
       }
@@ -314,7 +316,7 @@ async function findChatDirectoryPath(chatId: string): Promise<string | null> {
         !(error instanceof Error && 'code' in error && error.code === 'ENOENT')
       ) {
         console.error(
-          `[findChatDirectoryPath] Error checking name path ${namePath}:`,
+          `${logPrefix}Error checking name path ${namePath}:`,
           error
         );
       }
@@ -326,101 +328,86 @@ async function findChatDirectoryPath(chatId: string): Promise<string | null> {
     chatNameForLog = chatInfo.name;
   }
   console.warn(
-    `[findChatDirectoryPath] Could not find message directory for chat ID: ${chatId} using name '${chatNameForLog}' or ID.`
+    `${logPrefix}Could not find message directory for chat ID: ${chatId} using name '${chatNameForLog}' or ID.`
   );
   return null;
 }
 
-const dummyResolve = () => Promise.resolve();
+export const getFiles = async (
+  chatDirectoryPath: string,
+  mode: 'unprocessed' | 'all'
+) => {
+  const globPattern = path
+    .join(chatDirectoryPath, '*.json')
+    .replace(/\\/g, '/');
 
-interface SlackMessageAndMarkProcessed {
-  message: SlackMessage;
-  markAsProcessed: () => Promise<void>;
-}
-
-export async function getMessagesForChat(
-  chatId: string,
-  options: {
-    unprocessedOnly?: boolean;
-  } = {}
-): Promise<SlackMessageAndMarkProcessed[]> {
-  if (!(options.unprocessedOnly ?? false) && messageCache.has(chatId)) {
-    messageCache.set(chatId, messageCache.get(chatId) ?? []);
-    const cachedMessages = messageCache.get(chatId);
-    isNotUndefined(cachedMessages);
-    return cachedMessages.map(m => ({
-      message: m,
-      markAsProcessed: dummyResolve,
-    }));
+  if (debugLog) {
+    console.log(
+      `[getMessagesForChat] Globbing for messages in: ${globPattern}`
+    );
   }
+  const allMessageFiles = await glob(globPattern);
+  const messageFiles =
+    mode === 'unprocessed'
+      ? (
+          await Promise.all(
+            allMessageFiles.map(
+              async messageFile =>
+                [messageFile, await isFileProcessed(messageFile)] as const
+            )
+          )
+        )
+          .filter(([_, isProcessed]) => !isProcessed)
+          .map(([messageFile]) => messageFile)
+      : allMessageFiles;
+  return messageFiles;
+};
 
-  const chatDirPath = await findChatDirectoryPath(chatId);
+interface SlackMessageInfo {
+  message: SlackMessage;
+  filePath: string;
+}
+async function getMessagesForChatUncached(
+  chatId: string,
+  messageFiles: string[]
+): Promise<SlackMessageInfo[]> {
+  const chatDirectoryPath = await findChatDirectoryPath(chatId);
 
-  if (chatDirPath == null) {
-    messageCache.set(chatId, []);
-    pruneCache();
+  if (chatDirectoryPath == null) {
     return [];
   }
 
   try {
-    const globPattern = path.join(chatDirPath, '*.json').replace(/\\/g, '/');
-    if (debugLog) {
-      console.log(
-        `[getMessagesForChat] Globbing for messages in: ${globPattern}`
-      );
-    }
-    const allMessageFiles = await glob(globPattern);
-    const messageFiles =
-      (options.unprocessedOnly ?? false)
-        ? (
-            await Promise.all(
-              allMessageFiles.map(
-                async messageFile =>
-                  [messageFile, await isFileProcessed(messageFile)] as const
-              )
-            )
-          )
-            .filter(([_, isProcessed]) => !isProcessed)
-            .map(([messageFile]) => messageFile)
-        : allMessageFiles;
-
     if (messageFiles.length === 0) {
       if (debugLog) {
         console.warn(
-          `[getMessagesForChat] No message files found for chat ID: ${chatId} in resolved path: ${chatDirPath}`
+          `[getMessagesForChat] No message files found for chat ID: ${chatId} in resolved path: ${chatDirectoryPath}`
         );
       }
-      messageCache.set(chatId, []);
-      pruneCache();
       return [];
     }
 
-    const allMessages: SlackMessageAndMarkProcessed[] = [];
+    const allMessages: SlackMessageInfo[] = [];
+    const dataBasePath = getDataBasePath();
+
     for (const filePath of messageFiles) {
       try {
+        const pathWithinDataBasePath = path.relative(dataBasePath, filePath);
         const data = await fs.readFile(filePath, 'utf-8');
         if (data.trim().length > 2) {
           const messages = JSON.parse(data) as unknown;
           if (Array.isArray(messages)) {
-            const markAsProcessed = (() => {
-              let notMarkedAsProcessed = messages.length;
-              return async () => {
-                notMarkedAsProcessed--;
-                if (notMarkedAsProcessed === 0) {
-                  await markFilesAsProcessed([{ path: filePath }]);
-                }
-              };
-            })();
             messages.forEach(msg => {
               if (
                 typeof msg === 'object' &&
                 msg !== null &&
                 typeof (msg as { ts?: unknown }).ts === 'string'
               ) {
+                const slackMessage = msg as SlackMessage;
                 allMessages.push({
-                  message: msg as SlackMessage,
-                  markAsProcessed,
-                } as SlackMessageAndMarkProcessed);
+                  message: slackMessage,
+                  filePath: pathWithinDataBasePath,
+                } as SlackMessageInfo);
               }
             });
           } else {
@@ -440,18 +427,11 @@ export async function getMessagesForChat(
     allMessages.sort(
       (a, b) => parseFloat(a.message.ts) - parseFloat(b.message.ts)
     );
-    if (!(options.unprocessedOnly ?? false)) {
-      messageCache.set(
-        chatId,
-        allMessages.map(m => m.message)
-      );
-    }
-    pruneCache();
 
     return allMessages;
   } catch (error) {
     console.error(
-      `[getMessagesForChat] Error accessing message directory ${chatDirPath} or reading files:`,
+      `[getMessagesForChat] Error accessing message directory ${chatDirectoryPath} or reading files:`,
       error
     );
 
@@ -461,19 +441,51 @@ export async function getMessagesForChat(
   }
 }
 
-export async function isFileProcessed(path: string): Promise<boolean> {
+export const getMessagesForChat = memoize(getMessagesForChatUncached, {
+  isMatchingKey: (key1, key2) => isEqual(key1, key2),
+  maxSize: 100,
+});
+
+/**
+ *       const threadTsToIndex = new Map<string, number>();
+      allMessages
+        .filter(
+          msg =>
+            msg.message.thread_ts == null ||
+            msg.message.thread_ts === msg.message.ts
+        )
+        .forEach((msg, index) => {
+          msg.message.message_index_l = index;
+          if (msg.message.thread_ts != null) {
+            threadTsToIndex.set(msg.message.thread_ts, index);
+          }
+        });
+      allMessages.forEach(msg => {
+        if (
+          msg.message.message_index_l == null &&
+          msg.message.thread_ts != null
+        ) {
+          msg.message.message_index_l = threadTsToIndex.get(
+            msg.message.thread_ts
+          );
+        }
+      });
+
+ */
+
+export async function isFileProcessed(filePath: string): Promise<boolean> {
   const db = getDb();
   const result = await db.get<{ '1': number } | undefined>(
     'SELECT 1 FROM processed_files WHERE path = ?',
-    [path]
+    [filePath]
   );
   return result != null;
 }
 
-const markFilesAsProcessed = (() => {
+export const markFilesAsProcessed = (() => {
   const batchSize = 100;
 
-  const markFilesAsProcessedInDb = async (files: { path: string }[]) => {
+  const markFilesAsProcessedInDb = async (filePaths: string[]) => {
     const db = getDb();
     try {
       await db.run('BEGIN TRANSACTION');
@@ -482,19 +494,18 @@ const markFilesAsProcessed = (() => {
         'INSERT OR IGNORE INTO processed_files (path) VALUES (?)'
       );
 
-      for (const file of files) {
-        await stmt.run(file.path);
+      for (const filePath of filePaths) {
+        await stmt.run(filePath);
       }
 
       await stmt.finalize();
       await db.run('COMMIT');
-      files.length = 0;
     } catch (error) {
       console.error('Error marking files as processed in SQLite:', error);
       try {
         await db.run('ROLLBACK');
         console.log('SQLite transaction rolled back.');
-      } catch (rollbackError) {
+      } catch (rollbackError: unknown) {
         console.error('Error rolling back SQLite transaction:', rollbackError);
       }
 
@@ -506,19 +517,19 @@ const markFilesAsProcessed = (() => {
     concurrency: 1,
   });
 
-  const batchedFiles: { path: string }[] = [];
+  const batchedFilePaths: string[] = [];
 
   const markFilesAsProcessedResetBatch = async () => {
-    const filesToProcess = [...batchedFiles];
-    batchedFiles.length = 0;
-    await markFilesAsProcessedLimited(filesToProcess);
+    const filePathsToProcess = [...batchedFilePaths];
+    batchedFilePaths.length = 0;
+    await markFilesAsProcessedLimited(filePathsToProcess);
   };
 
   let timeout: NodeJS.Timeout | null = null;
 
-  const fn = async (files: { path: string }[]): Promise<void> => {
-    batchedFiles.push(...files);
-    if (batchedFiles.length < batchSize) {
+  const fn = async (args: { filePaths: string[] }): Promise<void> => {
+    batchedFilePaths.push(...args.filePaths);
+    if (batchedFilePaths.length < batchSize) {
       if (timeout != null) {
         timeout.close();
       }
@@ -530,8 +541,8 @@ const markFilesAsProcessed = (() => {
       }, 10000);
       return;
     }
-    const filesToProcess = [...batchedFiles];
-    batchedFiles.length = 0;
+    const filesToProcess = [...batchedFilePaths];
+    batchedFilePaths.length = 0;
     await markFilesAsProcessedLimited(filesToProcess).catch((err: unknown) => {
       console.log(err);
     });

@@ -1,51 +1,45 @@
-/* Remove default Vite demo styles */
-/* #root, .logo, .card, etc. can be removed or repurposed */
-
-/* App layout styles */
 .app-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  overflow: hidden; /* Prevent body scroll */
+  overflow: hidden;
 }
 
 .main-content {
   display: flex;
-  flex-grow: 1; /* Allow content to fill remaining height */
-  overflow: hidden; /* Prevent content overflow issues */
-  /* height: calc(100vh - 60px); */ /* Remove fixed height, use flex-grow */
+  flex-grow: 1;
+  overflow: hidden;
 }
 
 .sidebar {
-  flex: 0 0 280px; /* Slightly wider sidebar */
-  border-right: 1px solid #3f4552; /* Darker border */
-  display: flex; /* Use flex for internal layout */
+  flex: 0 0 280px;
+  border-right: 1px solid #3f4552;
+  display: flex;
   flex-direction: column;
-  overflow: hidden; /* Contain scrolling within */
+  overflow: hidden;
 }
 
 .content-view {
-  flex: 1; /* Take remaining space */
-  display: flex; /* Use flex for internal layout */
+  flex: 1;
+  display: flex;
   flex-direction: column;
-  overflow: hidden; /* Contain scrolling within */
-  position: relative; /* For absolute positioning of thread panel */
+  overflow: hidden;
+  position: relative;
 }
 
-/* Styling for ChatList component (can be moved to its own CSS module later) */
 .chat-list-container {
-  flex-grow: 1; /* Allow list to fill sidebar */
-  overflow-y: auto; /* Enable scrolling for the list itself */
-  padding: 0; /* Remove padding if handled by list items */
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 0;
 }
 
 .chat-list-container h2 {
-  position: sticky; /* Keep header visible */
+  position: sticky;
   top: 0;
-  background-color: #2c313a; /* Match header background */
+  background-color: #2c313a;
   z-index: 1;
-  margin: 0; /* Remove margin from h2 */
+  margin: 0;
 }
 
 .chat-list-ul {
@@ -55,9 +49,9 @@
 }
 
 .chat-list-item {
-  display: flex; /* Use flexbox for layout */
-  align-items: center; /* Vertically align avatar and text */
-  padding: 6px 10px; /* Adjust padding */
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
   cursor: pointer;
   border-bottom: 1px solid #3a3f4a;
   border-radius: 4px;
@@ -65,49 +59,41 @@
   transition: background-color 0.15s ease-in-out;
   white-space: nowrap;
   overflow: hidden;
-  /* text-overflow: ellipsis; Applied to chat-name span now */
 }
 
 .chat-avatar {
-  width: 24px; /* Size for sidebar avatar */
+  width: 24px;
   height: 24px;
-  border-radius: 3px; /* Slightly less rounded */
-  margin-right: 8px; /* Space between avatar and name */
-  flex-shrink: 0; /* Prevent avatar from shrinking */
-  display: flex; /* Center content (initials/icon) */
+  border-radius: 3px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px; /* Size for initials/icon */
+  font-size: 12px;
   font-weight: bold;
-  background-color: #4a515e; /* Default background */
+  background-color: #4a515e;
   color: #ffffff;
-  overflow: hidden; /* Hide potential overflow */
+  overflow: hidden;
 }
 
 .user-avatar {
-  /* Specific styles for user image avatars if needed */
-  background-color: transparent; /* Remove placeholder background */
-}
-
-.user-avatar-placeholder {
-  /* Specific styles for placeholder */
+  background-color: transparent;
 }
 
 .group-avatar {
-  /* Specific styles for group avatar */
-  font-size: 16px; /* Make group icon slightly larger */
+  font-size: 16px;
 }
 
 .chat-name {
-  flex-grow: 1; /* Allow name to take remaining space */
-  overflow: hidden; /* Hide overflow */
-  text-overflow: ellipsis; /* Add ellipsis to the name span */
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .chat-name span {
-  /* Targeting the type/archived span */
-  font-size: 0.85em; /* Slightly smaller */
+  font-size: 0.85em;
   color: #aaaaaa;
   margin-left: 4px;
 }
@@ -118,32 +104,30 @@
 
 .chat-list-item.selected {
   background-color: #4a515e;
-  /* font-weight: bold; Let avatar handle boldness */
   color: #ffffff;
 }
 
-/* Styling for MessageView component (can be moved to its own CSS module later) */
 .message-view-container {
-  flex-grow: 1; /* Allow view to fill container */
+  flex-grow: 1;
   display: flex;
   flex-direction: row;
-  padding: 0; /* Remove padding, handled by list/header */
-  border: none; /* Remove border, already have sidebar border */
-  position: relative; /* For absolute positioning of thread panel */
-  height: 100%; /* Ensure full height */
+  padding: 0;
+  border: none;
+  position: relative;
+  height: 100%;
 }
 
 .message-view-container h3 {
   padding: 10px 15px;
-  background-color: #2c313a; /* Match header background */
+  background-color: #2c313a;
   border-bottom: 1px solid #3f4552;
   margin: 0;
   font-size: 1.1em;
 }
 
 .message-list {
-  flex-grow: 1; /* Allow list to take available space */
-  overflow: hidden; /* Let react-window handle scrolling */
+  flex-grow: 1;
+  overflow: hidden;
 }
 
 .message-view-inner {
@@ -168,55 +152,54 @@
   height: 36px;
   border-radius: 4px;
   margin-right: 10px;
-  background-color: #4a515e; /* Keep placeholder background */
+  background-color: #4a515e;
   flex-shrink: 0;
-  overflow: hidden; /* Hide broken image icons/alt text spilling out */
-  /* Optional: Style alt text if image fails */
+  overflow: hidden;
+
   text-align: center;
-  line-height: 36px; /* Vertically center alt text (approx) */
+  line-height: 36px;
   font-size: 0.7em;
   color: #ccc;
 }
 
 .message-content {
   flex: 1;
-  /* Add overflow hidden to prevent content like long names spilling out */
   overflow: hidden;
-  min-width: 0; /* Important for flex items to allow shrinking below intrinsic size */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  row-gap: 4px;
 }
 
 .message-header {
   display: flex;
   align-items: baseline;
-  margin-bottom: 4px;
-  flex-wrap: wrap; /* Allow timestamp to wrap below name if needed */
+  flex-wrap: wrap;
 }
 
 .message-user-name {
   font-weight: bold;
   margin-right: 8px;
   color: #e0e0e0;
-  white-space: nowrap; /* Prevent name itself from wrapping */
-  overflow: hidden; /* Hide overflow if name is excessively long */
-  text-overflow: ellipsis; /* Show ellipsis (...) if name overflows */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .message-timestamp {
   font-size: 0.8em;
   color: #888888;
-  flex-shrink: 0; /* Prevent timestamp from shrinking */
+  flex-shrink: 0;
   white-space: nowrap;
-  /* Remove margin-left: auto if we want it next to name */
 }
 
 .message-text {
   line-height: 1.4;
   word-wrap: break-word;
   white-space: normal;
-  width: 100%; /* Ensure it takes full width of the content area */
+  width: 100%;
 }
 
-/* Loading, error, and empty states */
 .loading-indicator,
 .error-message,
 .empty-message {
@@ -230,7 +213,6 @@
   color: #e25c5c;
 }
 
-/* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
   .app-container {
     background-color: #1a1d21;
@@ -238,40 +220,39 @@
   }
 }
 
-/* Reactions Styling */
 .reactions-container {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 6px;
 }
 
 .reaction-item {
   display: flex;
   align-items: center;
-  /* background-color: #f0f0f0; */ /* Original light grey */
-  background-color: rgba(248, 248, 248, 0.06); /* Darker blue background */
-  /* border: 1px solid #dcdcdc; */ /* Original border */
-  border: none; /* Remove border */
+
+  background-color: rgba(248, 248, 248, 0.06);
+
+  border: none;
   border-radius: 12px;
-  padding: 2px 8px; /* Adjusted padding slightly */
+  padding: 2px 8px;
   font-size: 0.8rem;
   cursor: default;
-  color: white; /* Set default text color to white for descendants */
+  color: white;
 }
 
 .reaction-emoji {
-  margin-right: 5px; /* Adjusted space */
-  /* Emojis typically render well on dark backgrounds */
+  margin-right: 5px;
 }
 
 .reaction-count {
   font-weight: 500;
-  /* color: #333; */ /* Original dark grey */
-  color: white; /* White count text */
+  color: white;
 }
 
-/* Remove hover border style */
-/* .reaction-item:hover {
-  border-color: #b0b0b0;
-} */
+.search-result-user {
+  flex: 1;
+}
+
+.search-result-time {
+  flex: 1;
+}

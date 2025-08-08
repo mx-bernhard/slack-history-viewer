@@ -7,7 +7,6 @@ import { createQueryClient } from './api/query-client';
 import './index.css';
 import { StrictMode } from 'react';
 
-// Create a new query client for this client-side session
 const queryClient = createQueryClient();
 
 hydrateRoot(

@@ -6,12 +6,11 @@ export const getHighlighted = (
   isCurrentSearchResult: boolean
 ): string | ReactNode | null => {
   if (parsedText == null) return null;
-  // Apply highlighting if needed
-  // Only highlight plain strings for now
+
   const regex = new RegExp(
     `(${highlightPhrases.map(highlightPhrase => highlightPhrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
     'gi'
-  ); // Escape regex chars
+  );
   const parts = parsedText.split(regex);
   return parts.map((part, i) =>
     highlightPhrases.some(

@@ -18,11 +18,9 @@ import { isNever } from 'typed-assert';
 export const BlockRenderer = ({
   blocks,
   messageTs,
-  messageInSearchResults,
 }: {
   blocks: Block[];
   messageTs: string;
-  messageInSearchResults: boolean;
 }) => {
   if (blocks.length === 0) return null;
 
@@ -33,7 +31,6 @@ export const BlockRenderer = ({
           key={block.block_id != null ? blockIndex : ''}
           block={block}
           messageTs={messageTs}
-          messageInSearchResults={messageInSearchResults}
         />
       ))}
     </div>
@@ -43,11 +40,9 @@ export const BlockRenderer = ({
 const BlockItem = ({
   block,
   messageTs,
-  messageInSearchResults,
 }: {
   block: Block;
   messageTs: string;
-  messageInSearchResults: boolean;
 }) => {
   switch (block.type) {
     case 'rich_text':
@@ -56,7 +51,6 @@ const BlockItem = ({
           <RichTextBlockRenderer
             elements={(block as RichTextBlock).elements}
             messageTs={messageTs}
-            messageInSearchResults={messageInSearchResults}
           />
         </div>
       );
@@ -74,18 +68,15 @@ const BlockItem = ({
 const RichTextBlockRenderer = ({
   elements,
   messageTs,
-  messageInSearchResults,
 }: {
   elements: RichTextBlockElement[];
   messageTs: string;
-  messageInSearchResults: boolean;
 }) => {
   return elements.map((element, elementIndex) => (
     <RichTextElementRenderer
       key={elementIndex}
       element={element}
       messageTs={messageTs}
-      messageInSearchResults={messageInSearchResults}
     />
   ));
 };
@@ -93,22 +84,16 @@ const RichTextBlockRenderer = ({
 const RichTextElementRenderer = ({
   element,
   messageTs,
-  messageInSearchResults,
 }: {
   element: RichTextBlockElement;
   messageTs: string;
-  messageInSearchResults: boolean;
 }) => {
   if (element.type === 'rich_text_list') {
     return (
       <ul>
         {element.elements.map((e, i) => (
           <li key={i} style={{ listStyle: 'inside' }}>
-            <RichTextElementRenderer
-              element={e}
-              messageInSearchResults={messageInSearchResults}
-              messageTs={messageTs}
-            />
+            <RichTextElementRenderer element={e} messageTs={messageTs} />
           </li>
         ))}
       </ul>
@@ -118,7 +103,6 @@ const RichTextElementRenderer = ({
     <RichTextElementsRenderer
       elements={element.elements}
       messageTs={messageTs}
-      messageInSearchResults={messageInSearchResults}
     />
   );
   switch (element.type) {
@@ -140,22 +124,15 @@ const RichTextElementRenderer = ({
 const RichTextElementsRenderer = ({
   elements,
   messageTs,
-  messageInSearchResults,
   wrapElement = ({ children }) => children,
 }: {
   elements: RichTextElement[];
   messageTs: string;
-  messageInSearchResults: boolean;
   wrapElement?: ({ children }: { children: ReactNode }) => ReactNode;
 }) =>
   elements
     .map((element, index) => (
-      <TextElement
-        key={index}
-        element={element}
-        messageTs={messageTs}
-        messageInSearchResults={messageInSearchResults}
-      />
+      <TextElement key={index} element={element} messageTs={messageTs} />
     ))
     .map(reactElement => wrapElement({ children: reactElement }));
 
@@ -164,11 +141,9 @@ const emptyStringArray: string[] = [];
 const TextElement = ({
   element,
   messageTs,
-  messageInSearchResults,
 }: {
   element: RichTextElement;
   messageTs: string;
-  messageInSearchResults: boolean;
 }) => {
   const { getUserById } = useUsers();
   const { parseEmoji } = useEmoji();
@@ -177,26 +152,21 @@ const TextElement = ({
     ({
       currentResultIndex,
       searchResults,
-      selectedChatId,
-      actions: { isCurrentSearchResult },
+      actions: { isMessageInSearchResults },
     }) => {
+      const isCurrentSearchResultMessage = isMessageInSearchResults(messageTs);
       const highlightPhrases =
-        messageInSearchResults &&
+        isCurrentSearchResultMessage &&
         currentResultIndex !== -1 &&
         searchResults != null &&
         searchResults instanceof Array
           ? (searchResults[currentResultIndex]?.highlightPhrases ??
             emptyStringArray)
           : emptyStringArray;
-      const isCurrentSearchResultValue = isCurrentSearchResult(
-        selectedChatId ?? '',
-        messageTs
-      );
 
       return {
         highlightPhrases,
-        isCurrentSearchResult: isCurrentSearchResultValue,
-        messageInSearchResults,
+        isCurrentSearchResult: isCurrentSearchResultMessage,
       };
     }
   );

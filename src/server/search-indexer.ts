@@ -1,11 +1,32 @@
-import { getAllChats, getMessagesForChat } from './data-loader.js';
+import { isNotNull } from 'typed-assert';
+import {
+  findChatDirectoryPath,
+  getAllChats,
+  getFiles,
+  getMessagesForChat,
+  markFilesAsProcessed,
+} from './data-loader.js';
 import { createExtractInfos } from './extract-infos.js';
+import {
+  callSolrUpdate,
+  checkSolrConnection,
+  commitIndex,
+  search,
+} from './solr-api.js';
+import { checkAndUpdateMessageIndex as checkAndUpdateMessageIndex } from './check-and-update-index.js';
 
 export interface SearchResultDocument {
   id: string;
   chatId: string;
   ts: string;
-  user: string;
+  tsDt: string;
+  messageIndex: number;
+  threadTsDt: string | null;
+  threadTs: string | null;
+  userDisplayName: string | null;
+  userName: string;
+  userRealName: string;
+  userId: string;
   text: string;
   highlightPhrases: string[];
 }
@@ -18,133 +39,123 @@ const HIGHLIGHT_EXTRACT_REGEX = new RegExp(
   'g'
 );
 
-const solrHost = process.env.SLACK_SOLR_HOST ?? 'localhost';
-const solrPort = process.env.SLACK_SOLR_PORT ?? '8983';
-const solrCore = process.env.SLACK_SOLR_CORE ?? 'slack_messages';
-
-const solrApiBase = `http://${solrHost}:${solrPort}/solr/${solrCore}`;
-
-console.log(`Connecting to Solr: ${solrApiBase}`);
-
-async function checkSolrConnection(): Promise<void> {
-  const response = await fetch(solrApiBase + '/admin/ping?wt=json', {
-    method: 'GET',
-    headers: { accept: 'application/json; charset=utf-8' },
-  });
-  if (response.status === 200) {
-    console.log('✅ Successfully pinged Solr:', response.statusText);
-  } else {
-    console.error(
-      '❌ Solr is not responding from ping. ' + response.statusText
-    );
-  }
-}
-
 await checkSolrConnection();
 interface SolrDoc {
   id: string;
   chat_id_s: string;
-  chatId_s: string;
-  ts_l: number;
   ts_dt: string;
+  ts_s: string;
   user_id_s: string;
   [messageField]: string;
-  user_display_name_s: string;
+  user_display_name_s?: string;
   user_name_s: string;
   chat_type_s: string;
   user_real_name_s: string;
   channel_name_s: string;
   url_ss: string[];
+  file_path_s: string;
+  thread_message_b: boolean;
+  thread_ts_dt: string | null;
+  thread_ts_s: string | null;
+  message_index_l: number;
 }
-// Assuming SQLite check for already processed files happens in data-loader or needs adding there
+
 export async function buildSearchIndex(): Promise<void> {
   console.log('Starting Solr indexing process...');
   const startTime = Date.now();
-  // Explicitly type counters
+
   let totalMessagesAttempted: number = 0;
   let totalMessagesSuccessfullyIndexed: number = 0;
   let buildHadErrors: boolean = false;
   const batchSize: number = 1000;
-  let documentsBatch: SolrDoc[] = [];
-  const markAsProcessedBatch: (() => Promise<void>)[] = [];
-  let processedInfoBatch: { chatId: string; ts: string }[] = []; // Track IDs for SQLite update
+  const { submitBatch, getDocumentsBatch } = (() => {
+    let documentsBatch: SolrDoc[] = [];
+    return {
+      getDocumentsBatch: () => {
+        return documentsBatch;
+      },
+      submitBatch: async () => {
+        console.log(
+          `Submitting batch of ${documentsBatch.length.toString()} documents...`
+        );
+        const currentDocsToAdd = [...documentsBatch];
+        documentsBatch = [];
+
+        const success = await callSolrUpdate(currentDocsToAdd);
+        if (!success) {
+          console.error(`Error submitting batch to Solr.`);
+          buildHadErrors = true;
+        } else {
+          totalMessagesSuccessfullyIndexed += currentDocsToAdd.length;
+        }
+      },
+    };
+  })();
 
   try {
     console.log('Fetching chats to index...');
     const chats = await getAllChats();
     const extractInfos = createExtractInfos();
     if (chats.length === 0) {
-      console.warn('No new chats found to index.');
+      console.warn('No chats found to index.');
       return;
     }
 
     console.log(`Processing ${String(chats.length)} chats for indexing...`);
+
     for (const chat of chats) {
       try {
-        const messages = await getMessagesForChat(chat.id, {
-          unprocessedOnly: true,
-        });
+        const chatDirectoryPath = await findChatDirectoryPath(chat.id);
+        if (chatDirectoryPath == null) continue;
+        const unprocessedFiles = await getFiles(
+          chatDirectoryPath,
+          'unprocessed'
+        );
+        const messages = await getMessagesForChat(chat.id, unprocessedFiles);
         totalMessagesAttempted += messages.length;
 
-        for (const { message, markAsProcessed } of messages) {
-          if (
-            message.text != null &&
-            message.text.trim() !== '' &&
-            message.subtype == null
-          ) {
-            const docId = `${chat.id}_${message.ts}`;
+        for (const { message, filePath } of messages) {
+          const docId = `${chat.id}_${message.ts}`;
+          isNotNull(filePath);
+          const solrDoc: SolrDoc = {
+            id: docId,
+            chat_id_s: chat.id,
+            ts_dt: new Date(
+              Math.floor(parseFloat(message.ts) * 1000)
+            ).toISOString(),
+            ts_s: message.ts,
+            user_id_s: message.user ?? 'Unknown',
+            user_display_name_s: message.user_profile?.display_name,
+            user_name_s: message.user_profile?.name ?? 'Unknown',
+            user_real_name_s: message.user_profile?.real_name ?? 'Unknown',
+            [messageField]: message.text ?? '',
+            chat_type_s: chat.type,
+            channel_name_s: chat.name,
+            file_path_s: filePath,
+            message_index_l: -1,
+            thread_message_b:
+              message.thread_ts != null && message.thread_ts !== message.ts,
+            thread_ts_dt:
+              message.thread_ts != null
+                ? new Date(
+                    Math.floor(parseFloat(message.thread_ts) * 1000)
+                  ).toISOString()
+                : null,
+            thread_ts_s: message.thread_ts ?? null,
+            ...extractInfos(message),
+          };
+          getDocumentsBatch().push(solrDoc);
 
-            // Prepare document for Solr
-            // Using dynamic field conventions (_s for string, _l for long, _txt_en for text, _dt for timestamp iso format)
-            // Solr automatically handles types for dynamic fields if schema is schemaless
-            const solrDoc: SolrDoc = {
-              id: docId,
-              chatId_s: chat.id,
-              chat_id_s: chat.id,
-              ts_l: Math.floor(parseFloat(message.ts) * 1000),
-              ts_dt: new Date(
-                Math.floor(parseFloat(message.ts) * 1000)
-              ).toISOString(),
-              user_id_s: message.user ?? 'Unknown',
-              user_display_name_s:
-                message.user_profile?.display_name ?? 'Unknown',
-              user_name_s: message.user_profile?.name ?? 'Unknown',
-              user_real_name_s: message.user_profile?.real_name ?? 'Unknown',
-              [messageField]: message.text,
-              chat_type_s: chat.type,
-              channel_name_s: chat.name,
-              ...extractInfos(message),
-            };
-            documentsBatch.push(solrDoc);
-            markAsProcessedBatch.push(markAsProcessed);
-            // Also add minimal info to the batch for SQLite tracking
-            processedInfoBatch.push({ chatId: chat.id, ts: message.ts });
-
-            // If batch is full, send it to Solr
-            if (documentsBatch.length >= batchSize) {
-              console.log(
-                `Indexing batch of ${documentsBatch.length.toString()} documents...`
-              );
-              const currentDocsToAdd = [...documentsBatch]; // Copy batches before async call
-              documentsBatch = []; // Reset batch for next iteration
-              processedInfoBatch = [];
-
-              const success = await callSolrUpdate(currentDocsToAdd);
-              if (!success) {
-                console.error(
-                  `Error indexing batch to Solr or marking as processed.`
-                );
-                buildHadErrors = true;
-              } else {
-                totalMessagesSuccessfullyIndexed += currentDocsToAdd.length;
-                // Mark this batch as processed in SQLite *after* successful Solr add
-                await Promise.all(markAsProcessedBatch.map(m => m()));
-              }
-            }
+          if (getDocumentsBatch.length >= batchSize) {
+            await submitBatch();
           }
         }
-        // TODO: If tracking is done at chat/file level, update SQLite here.
-        // Current implementation tracks at message level.
+        if (unprocessedFiles.length > 0) {
+          await submitBatch();
+          await commitIndex();
+          await checkAndUpdateMessageIndex(chat.id);
+          await markFilesAsProcessed({ filePaths: unprocessedFiles });
+        }
       } catch (error: unknown) {
         console.error(
           `Error processing chat ${chat.id} for Solr indexing:`,
@@ -154,32 +165,17 @@ export async function buildSearchIndex(): Promise<void> {
       }
     }
 
-    // Index any remaining documents in the last batch
-    if (documentsBatch.length > 0) {
+    if (getDocumentsBatch().length > 0) {
       console.log(
-        `Indexing final batch of ${documentsBatch.length.toString()} documents...`
+        `Submitting final batch of ${getDocumentsBatch().length.toString()} documents...`
       );
-      const finalDocsToAdd = [...documentsBatch];
-
-      const success = await callSolrUpdate(finalDocsToAdd);
-      if (!success) {
-        console.error(
-          'Error indexing final batch to Solr or marking as processed.'
-        );
-        buildHadErrors = true;
-      } else {
-        totalMessagesSuccessfullyIndexed += finalDocsToAdd.length;
-      }
+      await submitBatch();
+      await commitIndex();
     }
 
-    // Commit changes to make them searchable in Solr
-    // Only commit if no *fatal* errors occurred during batch processing
     if (!buildHadErrors) {
-      // Or adjust condition based on desired resilience
       try {
-        console.log('Committing changes to Solr index...');
         await commitIndex();
-        console.log('Solr commit successful.');
       } catch (commitError) {
         console.error('Error committing changes to Solr:', commitError);
         buildHadErrors = true;
@@ -205,35 +201,32 @@ export async function buildSearchIndex(): Promise<void> {
 
 const messageField = 'text_txt_en';
 
-async function callSolrUpdate(json: unknown) {
-  const jsonStringBody = JSON.stringify(json);
-  const updateResponse = await fetch(solrApiBase + '/update/json?wt=json', {
-    method: 'POST',
-    headers: {
-      accept: 'application/json; charset=utf-8',
-      'content-length': String(Buffer.byteLength(jsonStringBody)),
-      'content-type': 'application/json',
-    },
-    body: jsonStringBody,
-  });
-  if (updateResponse.status >= 400 && updateResponse.status < 500) {
-    throw new Error(
-      'Error ' +
-        String(updateResponse.status) +
-        ': Could not add documents to solr. Response: ' +
-        updateResponse.statusText
-    );
-  }
-  if (updateResponse.status !== 200) {
-    console.error('!!!! Could not update index: ' + updateResponse.statusText);
-    return false;
-  }
-
-  return true;
+export interface SolrSearchArgs {
+  q: string;
+  fl?: string;
+  fq?: string;
+  df?: string;
+  hl?: boolean;
+  'hl.fl'?: string;
+  'hl.fragsize'?: number;
+  'hl.simple.pre'?: string;
+  'hl.simple.post'?: string;
+  start: number;
+  rows: number;
+  sort?: string;
+  wt?: string;
 }
 
-async function commitIndex() {
-  await callSolrUpdate({ commit: {} });
+export interface SolrQueryResponse {
+  response: {
+    numFound: number;
+    numFoundExact: boolean;
+    docs: SolrDoc[];
+  };
+  highlighting?: Record<
+    string,
+    undefined | Record<string, undefined | string[]>
+  >;
 }
 
 export async function searchMessages(
@@ -246,76 +239,52 @@ export async function searchMessages(
   const startTime = Date.now();
 
   try {
-    interface SolrQueryResponse {
-      response: {
-        numFound: number;
-        docs: SolrDoc[];
-      };
-      highlighting?: Record<
-        string,
-        undefined | Record<string, undefined | string[]>
-      >;
-    }
-
-    // Assert type to include highlighting
-    const search = {
+    const result = await search({
       q: query,
       df: messageField,
-      hl: String(true),
+      hl: true,
       'hl.fl': messageField,
-      'hl.fragsize': String(0),
+      'hl.fragsize': 0,
       'hl.simple.pre': HL_PRE_MARKER,
       'hl.simple.post': HL_POST_MARKER,
-      start: String(0),
-      rows: String(limit),
-      sort: 'ts_l desc',
+      start: 0,
+      rows: limit,
+      sort: 'ts_dt desc',
       wt: 'json',
-    };
-    const queryParams = new URLSearchParams(Object.entries(search)).toString();
-    const response = await fetch(solrApiBase + '/select?' + queryParams, {
-      method: 'GET',
     });
-    if (response.status !== 200) {
-      throw new Error('Could not search: ' + response.statusText);
-    }
-    const result = (await response.json()) as SolrQueryResponse;
     const highlights = result.highlighting ?? {};
 
     const finalDocs: SearchResultDocument[] = result.response.docs.map(
       (doc: SolrDoc) => {
-        const timestampMilliseconds = doc.ts_l;
-        const timestampSeconds = timestampMilliseconds / 1000;
-
         const highlightedSnippets = highlights[doc.id]?.[messageField];
         let highlightPhrases: string[] = [];
 
-        // If highlights exist for this doc, extract terms between markers
         if (highlightedSnippets && highlightedSnippets.length > 0) {
-          const snippet = highlightedSnippets[0]; // fragsize=0 means one snippet
-          // assert(snippet !== undefined);
+          const snippet = highlightedSnippets[0];
+
           let match;
-          // Use regex to find all occurrences and extract the captured group (.*?)
+
           while ((match = HIGHLIGHT_EXTRACT_REGEX.exec(snippet)) !== null) {
-            // Add the captured group (the text between markers)
             if (match[1]) {
               highlightPhrases.push(match[1]);
             }
           }
-          // Deduplicate phrases
+
           highlightPhrases = [...new Set(highlightPhrases)];
         }
 
         return {
           id: doc.id,
           chatId: doc.chat_id_s,
-          ts: timestampSeconds.toFixed(6),
-          user: [
-            doc.user_display_name_s,
-            doc.user_name_s,
-            doc.user_real_name_s,
-            doc.user_id_s,
-          ].join(' | '),
-          // Return the ORIGINAL text
+          ts: doc.ts_s,
+          tsDt: doc.ts_dt,
+          threadTs: doc.thread_ts_s,
+          threadTsDt: doc.thread_ts_dt,
+          userDisplayName: doc.user_display_name_s ?? null,
+          userName: doc.user_name_s,
+          userRealName: doc.user_real_name_s,
+          userId: doc.user_id_s,
+          messageIndex: doc.message_index_l,
           text: doc[messageField],
           highlightPhrases,
         } satisfies SearchResultDocument;
