@@ -6,16 +6,23 @@ import { MessageRow } from './message-row';
 import { canCombineMessages } from './can-combine-messages';
 
 export const ThreadPanel: FC = () => {
-  const { setSelectedThreadTs, selectedChatId, selectedThreadTs } = useStore(
+  const {
+    setSelectedThreadTs,
+    selectedChatId,
+    selectedThreadTs,
+    isCurrentSearchResult,
+  } = useStore(
     ({
       actions: { setSelectedThreadTs },
       selectedThreadTs,
       selectedChatId,
+      actions: { isCurrentSearchResult },
     }) => {
       return {
         setSelectedThreadTs,
         selectedChatId,
         selectedThreadTs,
+        isCurrentSearchResult,
       };
     }
   );
@@ -101,6 +108,10 @@ export const ThreadPanel: FC = () => {
                 message={message}
                 startOfCombinedMessageBlock={startOfCombinedMessageBlock}
                 endOfCombinedMessageBlock={endOfCombinedMessageBlock}
+                isCurrentSearchResult={
+                  selectedChatId != null &&
+                  isCurrentSearchResult(selectedChatId, message.ts)
+                }
               />
             );
           })

@@ -21,6 +21,12 @@ const createRowComponent = ({
     });
 
     const message = data?.message;
+    const isCurrentSearchResult = useStore(
+      ({ actions: { isCurrentSearchResult } }) =>
+        selectedChatId != null &&
+        message != null &&
+        isCurrentSearchResult(selectedChatId, message.ts)
+    );
     if (isLoading || message == null) {
       return <div>Loading...</div>;
     }
@@ -28,6 +34,7 @@ const createRowComponent = ({
       <MessageRow
         message={message}
         onThreadClick={handleThreadClick}
+        isCurrentSearchResult={isCurrentSearchResult}
         startOfCombinedMessageBlock={
           data?.startOfCombinedMessagesBlock === true
         }

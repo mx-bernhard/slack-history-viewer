@@ -29,22 +29,20 @@ export const MessageRow = ({
   onThreadClick,
   startOfCombinedMessageBlock,
   endOfCombinedMessageBlock,
+  isCurrentSearchResult,
 }: {
   style?: CSSProperties;
   message: SlackMessage;
   onThreadClick?: (threadTs: string) => void;
   startOfCombinedMessageBlock: boolean;
   endOfCombinedMessageBlock: boolean;
+  isCurrentSearchResult: boolean;
 }) => {
-  const { selectedChatId, isCurrentSearchResult, highlightPhrases } = useStore(
+  const { selectedChatId, highlightPhrases } = useStore(
     ({
       selectedChatId,
       currentResultIndex,
-      actions: {
-        getSearchResults,
-        isCurrentSearchResult,
-        isMessageInSearchResults,
-      },
+      actions: { getSearchResults, isMessageInSearchResults },
     }) => {
       const searchResults = getSearchResults();
       const currentSearchResult: SearchResultDocument | undefined =
@@ -52,7 +50,6 @@ export const MessageRow = ({
 
       return {
         selectedChatId,
-        isCurrentSearchResult,
         highlightPhrases: isMessageInSearchResults(message.ts)
           ? (currentSearchResult?.highlightPhrases ?? emptyArray)
           : emptyArray,
@@ -120,6 +117,7 @@ export const MessageRow = ({
       className={classNames('message-row', {
         'message-row-end': endOfCombinedMessageBlock,
         'message-row-start': startOfCombinedMessageBlock,
+        'highlighted-search-result': isCurrentSearchResult,
       })}
     >
       <div className="message-row-content">
@@ -159,7 +157,7 @@ export const MessageRow = ({
             getHighlighted(
               parseSlackMessage(message.text, getUserById, parseEmoji),
               highlightPhrases,
-              isCurrentSearchResult(selectedChatId ?? '', message.ts)
+              isCurrentSearchResult
             )
           )}
           {hasFiles && selectedChatId != null && (
