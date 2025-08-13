@@ -67,7 +67,7 @@ const SearchResults = () => {
             key={result.id}
             className="search-result-item"
             onClick={() => {
-              setSelectedResult(result.id, result.chatId);
+              setSelectedResult(result.id);
             }}
             style={{ cursor: 'pointer' }}
             title={`Go to message in chat ${result.chatId}`}
@@ -75,7 +75,7 @@ const SearchResults = () => {
             tabIndex={0}
             onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ')
-                setSelectedResult(result.id, result.chatId);
+                setSelectedResult(result.id);
             }}
           >
             {/* Basic styling - consider moving to CSS */}

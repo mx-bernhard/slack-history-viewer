@@ -11,6 +11,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { createSearchQuery } from './api/use-queries';
 import { useIsClient } from './components/use-is-client';
 import { SearchResultDocument } from './server/search-indexer';
+import { apiClient } from './api/api-client';
 
 export interface SlackHistoryViewerStore {
   searchQueryInput: string;
@@ -27,7 +28,7 @@ export interface SlackHistoryViewerStore {
     setSearchQueryInput: (query: string) => void;
     setLimit: (value: number) => void;
     navigateToResult: (direction: 'prev' | 'next') => void;
-    setSelectedResult: (id: string, chatId: string) => void;
+    setSelectedResult: (id: string) => void;
     getSearchResults: () => SearchResultDocument[];
     isCurrentSearchResult: (chatId: string, ts: string) => boolean;
     isMessageInSearchResults: (messageTs: string) => boolean;
@@ -135,7 +136,11 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
           set({ limit: value });
         },
         navigateToResult: direction => {
-          const { searchResults, currentResultIndex } = get();
+          const {
+            searchResults,
+            currentResultIndex,
+            actions: { setSelectedResult },
+          } = get();
           if (searchResults == null || searchResults instanceof Error) return;
           if (searchResults.length === 0) return;
 
@@ -152,21 +157,52 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
           if (nextIndex !== currentResultIndex) {
             const searchResult = searchResults[nextIndex];
             if (typeof searchResult === 'object') {
-              set({
-                currentResultIndex: nextIndex,
-                selectedChatId: searchResult.chatId,
-                messageIndex: searchResult.messageIndex,
-                selectedThreadTs: searchResult.threadTs ?? undefined,
-              });
+              setSelectedResult(searchResult.id);
             }
           }
         },
-        setSelectedResult: (id, chatId) => {
+        setSelectedResult: id => {
           const searchResults = get().actions.getSearchResults();
           if (searchResults.length === 0) return;
           const index = searchResults.findIndex(sr => sr.id === id);
           if (index !== -1) {
-            set({ currentResultIndex: index, selectedChatId: chatId });
+            const searchResult = searchResults[index];
+            if (searchResult == null) return;
+            if (searchResult.threadTs != null) {
+              apiClient
+                .searchMessages(
+                  'ts_s: ' +
+                    searchResult.threadTs +
+                    ' AND thread_ts_s: ' +
+                    searchResult.threadTs +
+                    ' AND chat_id_s: ' +
+                    searchResult.chatId,
+                  1
+                )
+                .then(
+                  res => {
+                    const messageIndex = res[0]?.messageIndex;
+                    if (messageIndex != null && messageIndex !== -1) {
+                      set({
+                        currentResultIndex: index,
+                        messageIndex,
+                        selectedChatId: searchResult.chatId,
+                        selectedThreadTs: searchResult.threadTs,
+                      });
+                    }
+                  },
+                  (rej: unknown) => {
+                    console.error(rej);
+                  }
+                );
+            } else {
+              set({
+                currentResultIndex: index,
+                selectedChatId: searchResult.chatId,
+                selectedThreadTs: null,
+                messageIndex: searchResult.messageIndex,
+              });
+            }
           }
         },
       },
