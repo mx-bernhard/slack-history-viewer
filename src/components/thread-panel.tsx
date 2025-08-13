@@ -1,8 +1,9 @@
 import { FC, useCallback, useMemo } from 'react';
-import { useMessagesQuery } from '../api/use-queries';
+import { useThreadQuery } from '../api/use-queries';
+import { useStore } from '../store';
 import { SlackMessage } from '../types';
 import { MessageRow } from './message-row';
-import { useStore } from '../store';
+import { canCombineMessages } from './can-combine-messages';
 
 export const ThreadPanel: FC = () => {
   const { setSelectedThreadTs, selectedChatId, selectedThreadTs } = useStore(
@@ -22,7 +23,7 @@ export const ThreadPanel: FC = () => {
     data: messages,
     isLoading,
     error,
-  } = useMessagesQuery(
+  } = useThreadQuery(
     selectedThreadTs != null
       ? {
           chatId: selectedChatId,
@@ -86,14 +87,23 @@ export const ThreadPanel: FC = () => {
         ) : threadMessages.length === 0 ? (
           <div className="empty-thread">No thread messages found</div>
         ) : (
-          threadMessages.map((message, index) => (
-            <MessageRow
-              onSizeMeasured={() => {}}
-              key={message.ts}
-              message={message}
-              index={index}
-            />
-          ))
+          threadMessages.map((message, index) => {
+            const previousMessage = threadMessages[index - 1];
+            const nextMessage = threadMessages[index + 1];
+            const startOfCombinedMessageBlock =
+              previousMessage == null ||
+              !canCombineMessages(previousMessage, message);
+            const endOfCombinedMessageBlock =
+              nextMessage != null && !canCombineMessages(nextMessage, message);
+            return (
+              <MessageRow
+                key={message.ts}
+                message={message}
+                startOfCombinedMessageBlock={startOfCombinedMessageBlock}
+                endOfCombinedMessageBlock={endOfCombinedMessageBlock}
+              />
+            );
+          })
         )}
       </div>
     </div>

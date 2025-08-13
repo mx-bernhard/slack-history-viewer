@@ -437,8 +437,13 @@ strong {
 }
 
 .message-content {
-  row-gap: 4px;
-  padding-bottom: 6px;
+  row-gap: 0;
+  padding-bottom: 4px;
+  line-height: 1.375;
+}
+
+.message-content-end {
+  padding-bottom: 8px;
 }
 
 .message-row-content {

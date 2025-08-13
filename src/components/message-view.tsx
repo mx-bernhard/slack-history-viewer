@@ -1,75 +1,41 @@
-import debounceCollect from 'debounce-collect';
-import {
-  ComponentType,
-  ReactNode,
-  Ref,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
 import useMeasure from 'react-use-measure';
-import AutoSizer from 'react-virtualized-auto-sizer';
-import {
-  ListChildComponentProps,
-  ListOnItemsRenderedProps,
-  VariableSizeList,
-} from 'react-window';
-import { useChatInfoQuery, useMessagesQuery } from '../api/use-queries';
+import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { useChatInfoQuery, useMessageQuery } from '../api/use-queries';
 import { useStore } from '../store.js';
 import { MessageRow } from './message-row';
 import { ThreadPanel } from './thread-panel';
 import { useIsClient } from './use-is-client';
 
-const batchSize = 100;
-
-const ListComponent = VariableSizeList as unknown as ComponentType<{
-  className?: string;
-  height: number;
-  width: number;
-  itemCount: number;
-  itemSize: (index: number) => number;
-  ref: Ref<VariableSizeList>;
-  children: (props: ListChildComponentProps) => ReactNode;
-  onItemsRendered?: ((props: ListOnItemsRenderedProps) => unknown) | undefined;
-}>;
-
 const createRowComponent = ({
   handleThreadClick,
-  onSizeMeasured,
   selectedChatId,
 }: {
   handleThreadClick: (threadTs?: string) => void;
-  onSizeMeasured: (height: number, index: number) => void;
   selectedChatId: string | null;
 }) => {
-  const Component = ({ index, style }: ListChildComponentProps) => {
-    const startIndex = Math.floor(index / batchSize) * batchSize;
-    const { isLoading, data } = useMessagesQuery({
+  const Component: FC<{ index: number }> = ({ index }: { index: number }) => {
+    const { isLoading, data } = useMessageQuery({
       chatId: selectedChatId,
-      rows: batchSize,
-      start: startIndex,
+      messageIndex: index,
     });
 
-    if (isLoading || data == null) {
-      return <div style={style}>Loading...</div>;
-    }
-    const message = data[index % batchSize];
-    if (message == null) {
-      return <div style={style}>Loading...</div>;
+    const message = data?.message;
+    if (isLoading || message == null) {
+      return <div>Loading...</div>;
     }
     return (
       <MessageRow
-        style={style}
         message={message}
-        index={index}
         onThreadClick={handleThreadClick}
-        onSizeMeasured={onSizeMeasured}
+        startOfCombinedMessageBlock={
+          data?.startOfCombinedMessagesBlock === true
+        }
+        endOfCombinedMessageBlock={data?.endOfCombinedMessagesBlock === true}
       />
     );
   };
-  return Component;
+  return (index: number) => <Component index={index} />;
 };
 
 const ClientMessageView = () => {
@@ -98,25 +64,7 @@ const ClientMessageView = () => {
   const [refCallback] = useMeasure({ scroll: true });
   const isClient = useIsClient();
 
-  const [list, setList] = useState<VariableSizeList | null>(null);
-  const rowHeightsRef = useRef<{ [key: string]: number }>({});
-
   const { data: countInfo } = useChatInfoQuery(selectedChatId);
-
-  const getRowHeight = useCallback((index: number) => {
-    return rowHeightsRef.current[index] ?? 66;
-  }, []);
-
-  const resetAfterIndex = useMemo(() => {
-    return debounceCollect((collectedArgs: [number][]) => {
-      if (list == null || collectedArgs.length === 0) {
-        return;
-      }
-      const indices = collectedArgs.map(args => args[0]);
-      const minIndex = Math.min(...indices);
-      list.resetAfterIndex(minIndex - 1, true);
-    }, 50);
-  }, [list]) as (index: number) => void;
 
   const handleThreadClick = useCallback(
     (threadTs?: string) => {
@@ -128,34 +76,26 @@ const ClientMessageView = () => {
     },
     [selectedThreadTs, setSelectedThreadTs]
   );
+  const virtuosoRef = useRef<VirtuosoHandle | null>(null);
 
-  const onSizeMeasured = useCallback(
-    (height: number, index: number) => {
-      if (list != null && rowHeightsRef.current[index] !== height) {
-        rowHeightsRef.current[index] = height;
-        resetAfterIndex(index);
-      }
-    },
-    [list, resetAfterIndex]
-  );
-  const canScrollToItem = isClient && selectedChatId != null && list != null;
+  const canScrollToItem =
+    isClient && selectedChatId != null && virtuosoRef.current != null;
   useEffect(() => {
     if (canScrollToItem) {
       const scrollToMessageIndex = messageIndex ?? (countInfo?.total ?? 1) - 1;
       setTimeout(() => {
-        list.scrollToItem(scrollToMessageIndex, 'smart');
+        virtuosoRef.current?.scrollToIndex(scrollToMessageIndex);
       }, 100);
     }
-  }, [canScrollToItem, countInfo?.total, list, messageIndex]);
+  }, [canScrollToItem, countInfo?.total, messageIndex]);
 
-  const Row = useMemo(
+  const renderRow = useMemo(
     () =>
       createRowComponent({
         handleThreadClick,
-        onSizeMeasured,
         selectedChatId,
       }),
-    [onSizeMeasured, handleThreadClick, selectedChatId]
+    [handleThreadClick, selectedChatId]
   );
 
   if (!isClient) {
@@ -170,28 +110,19 @@ const ClientMessageView = () => {
     } else {
       return (
         <div ref={refCallback} className="message-view-inner">
-          <AutoSizer>
-            {({ height, width }) => (
-              <div
-                className="message-list-container"
-                style={{
-                  width:
-                    selectedThreadTs != null ? 'calc(100% - 350px)' : '100%',
-                }}
-              >
-                <ListComponent
-                  className="message-list"
-                  height={height || 400}
-                  width={width || 800}
-                  itemCount={countInfo.total}
-                  itemSize={getRowHeight}
-                  ref={setList}
-                >
-                  {Row}
-                </ListComponent>
-              </div>
-            )}
-          </AutoSizer>
+          <div
+            className="message-list-container"
+            style={{
+              width: selectedThreadTs != null ? 'calc(100% - 350px)' : '100%',
+            }}
+          >
+            <Virtuoso
+              className="message-list"
+              totalCount={countInfo.total}
+              itemContent={renderRow}
+              ref={virtuosoRef}
+            />
+          </div>
         </div>
       );
     }

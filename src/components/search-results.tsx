@@ -3,10 +3,11 @@ import { useEmoji } from '../contexts/emoji-context';
 import { useUsers } from '../contexts/user-context';
 import { useStore } from '../store';
 import { parseSlackMessage } from '../utils/message-parser';
+import { toDate } from '../utils/to-date';
 
 const formatTimestamp = (timestamp: string): string => {
   try {
-    return new Date(Math.floor(parseFloat(timestamp) * 1000)).toLocaleString();
+    return toDate(timestamp).toLocaleString();
   } catch {
     console.warn('Error formatting timestamp:', timestamp);
     return timestamp;

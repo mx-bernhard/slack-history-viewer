@@ -1,5 +1,5 @@
-import { CSSProperties, useCallback, useEffect, useMemo } from 'react';
-import useMeasure from 'react-use-measure';
+import classNames from 'classnames';
+import { CSSProperties, useCallback, useMemo } from 'react';
 import { useEmoji } from '../contexts/emoji-context';
 import { useUsers } from '../contexts/user-context';
 import { SearchResultDocument } from '../server/search-indexer.js';
@@ -16,18 +16,25 @@ import { ReactionsList } from './message-reactions/reactions-list';
 
 const emptyArray: string[] = [];
 
+const userLocale = navigator.language; // e.g., "en-US", "fr-FR", "de-CH"
+
+const formatTime = (ts: string) =>
+  new Intl.DateTimeFormat(userLocale, {
+    timeStyle: 'short',
+  }).format(toDate(ts));
+
 export const MessageRow = ({
   style: reactWindowStyle,
   message,
-  index,
   onThreadClick,
-  onSizeMeasured,
+  startOfCombinedMessageBlock,
+  endOfCombinedMessageBlock,
 }: {
   style?: CSSProperties;
   message: SlackMessage;
-  index: number;
   onThreadClick?: (threadTs: string) => void;
-  onSizeMeasured: (height: number, messageIndex: number) => void;
+  startOfCombinedMessageBlock: boolean;
+  endOfCombinedMessageBlock: boolean;
 }) => {
   const { selectedChatId, isCurrentSearchResult, highlightPhrases } = useStore(
     ({
@@ -54,12 +61,6 @@ export const MessageRow = ({
   );
 
   const replyCount = message.reply_count ?? 0;
-  const [ref, { height }] = useMeasure({ debounce: 300 });
-  useEffect(() => {
-    if (height > 0) {
-      onSizeMeasured(height + 8, index);
-    }
-  }, [height, index, onSizeMeasured]);
   const { getUserById } = useUsers();
   const { parseEmoji } = useEmoji();
 
@@ -114,9 +115,15 @@ export const MessageRow = ({
   const hasReplies = isNotEmpty(message.replies) || replyCount > 0;
 
   return (
-    <div style={reactWindowStyle} className="message-row">
-      <div className="message-row-content" ref={ref}>
-        {avatarUrl != null && (
+    <div
+      style={reactWindowStyle}
+      className={classNames('message-row', {
+        'message-row-end': endOfCombinedMessageBlock,
+        'message-row-start': startOfCombinedMessageBlock,
+      })}
+    >
+      <div className="message-row-content">
+        {avatarUrl != null && startOfCombinedMessageBlock && (
           <img
             src={avatarUrl}
             alt={`${displayName} avatar`}
@@ -124,16 +131,25 @@ export const MessageRow = ({
             onError={e => (e.currentTarget.style.display = 'none')}
           />
         )}
-        {avatarUrl == null && (
+        {avatarUrl == null && startOfCombinedMessageBlock && (
           <div className="message-avatar">{displayName.charAt(0)}</div>
         )}
-        <div className="message-content">
-          <div className="message-header">
-            <span className="message-user-name">{displayName}</span>{' '}
-            <span className="message-timestamp">
-              {timestamp.toLocaleString()}
-            </span>
-          </div>
+        {!startOfCombinedMessageBlock && (
+          <div className="message-clock">{formatTime(message.ts)}</div>
+        )}
+        <div
+          className={classNames('message-content', {
+            'message-content-end': endOfCombinedMessageBlock,
+          })}
+        >
+          {startOfCombinedMessageBlock && (
+            <div className="message-header">
+              <span className="message-user-name">{displayName}</span>{' '}
+              <span className="message-timestamp">
+                {timestamp.toLocaleString()}
+              </span>
+            </div>
+          )}
           {hasBlocks ? (
             <BlockRenderer
               blocks={message.blocks ?? []}
