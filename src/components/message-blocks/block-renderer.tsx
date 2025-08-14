@@ -148,15 +148,18 @@ const TextElement = ({
   const { getUserById } = useUsers();
   const { parseEmoji } = useEmoji();
 
-  const { highlightPhrases, isCurrentSearchResult } = useStore(
+  const { highlightPhrases, currentSearchResultMessageKind } = useStore(
     ({
       currentResultIndex,
       searchResults,
-      actions: { isMessageInSearchResults },
+      actions: {
+        getCurrentSearchResultMessageKindOfCurrentChat:
+          getSearchResultMessageKind,
+      },
     }) => {
-      const isCurrentSearchResultMessage = isMessageInSearchResults(messageTs);
+      const currentSearchResultMessageKind =
+        getSearchResultMessageKind(messageTs);
       const highlightPhrases =
-        isCurrentSearchResultMessage &&
         currentResultIndex !== -1 &&
         searchResults != null &&
         searchResults instanceof Array
@@ -166,7 +169,7 @@ const TextElement = ({
 
       return {
         highlightPhrases,
-        isCurrentSearchResult: isCurrentSearchResultMessage,
+        currentSearchResultMessageKind,
       };
     }
   );
@@ -179,7 +182,7 @@ const TextElement = ({
       const maybeHighlightedText = getHighlighted(
         textContent,
         highlightPhrases,
-        isCurrentSearchResult
+        currentSearchResultMessageKind === 'message'
       );
       if (element.style?.bold != null) {
         return <strong>{maybeHighlightedText}</strong>;
@@ -202,7 +205,11 @@ const TextElement = ({
       );
       return (
         <a href={url} target="_blank" rel="noopener noreferrer">
-          {getHighlighted(linkText, highlightPhrases, isCurrentSearchResult)}
+          {getHighlighted(
+            linkText,
+            highlightPhrases,
+            currentSearchResultMessageKind === 'message'
+          )}
         </a>
       );
     }

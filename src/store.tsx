@@ -21,6 +21,7 @@ export interface SlackHistoryViewerStore {
   limit: number;
   selectedChatId: string | null;
   messageIndex: number | null;
+  threadMessageIndex: number | null;
   selectedThreadTs?: string | null;
   actions: {
     setSelectedChatId: (chatId: string | null) => void;
@@ -30,8 +31,13 @@ export interface SlackHistoryViewerStore {
     navigateToResult: (direction: 'prev' | 'next') => void;
     setSelectedResult: (id: string) => void;
     getSearchResults: () => SearchResultDocument[];
-    isCurrentSearchResult: (chatId: string, ts: string) => boolean;
-    isMessageInSearchResults: (messageTs: string) => boolean;
+    getCurrentSearchResultMessageKind: (
+      chatId: string,
+      ts: string
+    ) => 'message' | 'thread-starter' | 'none';
+    getCurrentSearchResultMessageKindOfCurrentChat: (
+      messageTs: string
+    ) => 'message' | 'thread-starter' | 'none';
   };
 }
 
@@ -51,6 +57,7 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+const maxThreadMessages = 1000;
 const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
   create<SlackHistoryViewerStore>((set, get) => {
     return {
@@ -62,29 +69,38 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
       limit: 50,
       selectedThreadTs: null,
       messageIndex: null,
+      threadMessageIndex: null,
       actions: {
-        isMessageInSearchResults: (messageTs: string) => {
+        getCurrentSearchResultMessageKindOfCurrentChat: (messageTs: string) => {
           const {
-            actions: { isCurrentSearchResult },
+            actions: { getCurrentSearchResultMessageKind },
             selectedChatId,
           } = get();
 
-          return (
-            selectedChatId != null &&
-            isCurrentSearchResult(selectedChatId, messageTs)
-          );
+          return selectedChatId != null
+            ? getCurrentSearchResultMessageKind(selectedChatId, messageTs)
+            : 'none';
         },
-        isCurrentSearchResult: (chatId: string, messageTs: string) => {
+        getCurrentSearchResultMessageKind: (
+          chatId: string,
+          messageTs: string
+        ) => {
           const {
             currentResultIndex,
             actions: { getSearchResults },
           } = get();
           const currentSearchResult = getSearchResults()[currentResultIndex];
-          return (
-            currentSearchResult != null &&
-            currentSearchResult.chatId === chatId &&
-            currentSearchResult.ts === messageTs
-          );
+          if (
+            currentSearchResult == null ||
+            currentSearchResult.chatId != chatId
+          ) {
+            return 'none';
+          }
+          return currentSearchResult.ts === messageTs
+            ? 'message'
+            : currentSearchResult.threadTs === messageTs
+              ? 'thread-starter'
+              : 'none';
         },
         getSearchResults: () => {
           const { searchResults } = get();
@@ -168,39 +184,41 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
           if (index !== -1) {
             const searchResult = searchResults[index];
             if (searchResult == null) return;
-            if (searchResult.threadTs != null) {
-              apiClient
-                .searchMessages(
-                  'ts_s: ' +
-                    searchResult.threadTs +
-                    ' AND thread_ts_s: ' +
-                    searchResult.threadTs +
+            const searchResultThreadTs = searchResult.threadTs;
+            if (searchResultThreadTs != null) {
+              (async () => {
+                const threadMessages = await apiClient.searchMessages(
+                  'thread_ts_s: ' +
+                    searchResultThreadTs +
                     ' AND chat_id_s: ' +
                     searchResult.chatId,
-                  1
-                )
-                .then(
-                  res => {
-                    const messageIndex = res[0]?.messageIndex;
-                    if (messageIndex != null && messageIndex !== -1) {
-                      set({
-                        currentResultIndex: index,
-                        messageIndex,
-                        selectedChatId: searchResult.chatId,
-                        selectedThreadTs: searchResult.threadTs,
-                      });
-                    }
-                  },
-                  (rej: unknown) => {
-                    console.error(rej);
-                  }
+                  maxThreadMessages
                 );
+
+                const threadMessageIndex = threadMessages.findIndex(
+                  message => message.ts === searchResult.threadTs
+                );
+                const threadStartingMessage = threadMessages.at(-1);
+
+                if (threadMessageIndex !== -1) {
+                  set({
+                    currentResultIndex: index,
+                    messageIndex: threadStartingMessage?.messageIndex ?? -1,
+                    selectedChatId: searchResult.chatId,
+                    selectedThreadTs: searchResult.threadTs,
+                    threadMessageIndex,
+                  });
+                }
+              })().catch((err: unknown) => {
+                console.error(err);
+              });
             } else {
               set({
                 currentResultIndex: index,
                 selectedChatId: searchResult.chatId,
                 selectedThreadTs: null,
                 messageIndex: searchResult.messageIndex,
+                threadMessageIndex: null,
               });
             }
           }

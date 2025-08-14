@@ -30,20 +30,23 @@ export const MessageRow = ({
   onThreadClick,
   startOfCombinedMessageBlock,
   endOfCombinedMessageBlock,
-  isCurrentSearchResult,
+  currentSearchResultMessageKind,
 }: {
   style?: CSSProperties;
   message: SlackMessage;
   onThreadClick?: (threadTs: string) => void;
   startOfCombinedMessageBlock: boolean;
   endOfCombinedMessageBlock: boolean;
-  isCurrentSearchResult: boolean;
+  currentSearchResultMessageKind: 'message' | 'thread-starter' | 'none';
 }) => {
   const { selectedChatId, highlightPhrases } = useStore(
     ({
       selectedChatId,
       currentResultIndex,
-      actions: { getSearchResults, isMessageInSearchResults },
+      actions: {
+        getSearchResults,
+        getCurrentSearchResultMessageKindOfCurrentChat,
+      },
     }) => {
       const searchResults = getSearchResults();
       const currentSearchResult: SearchResultDocument | undefined =
@@ -51,9 +54,11 @@ export const MessageRow = ({
 
       return {
         selectedChatId,
-        highlightPhrases: isMessageInSearchResults(message.ts)
-          ? (currentSearchResult?.highlightPhrases ?? emptyArray)
-          : emptyArray,
+        highlightPhrases:
+          getCurrentSearchResultMessageKindOfCurrentChat(message.ts) ===
+          'message'
+            ? (currentSearchResult?.highlightPhrases ?? emptyArray)
+            : emptyArray,
       };
     }
   );
@@ -120,7 +125,10 @@ export const MessageRow = ({
       className={classNames('message-row', {
         'message-row-end': endOfCombinedMessageBlock,
         'message-row-start': startOfCombinedMessageBlock,
-        'highlighted-search-result': isCurrentSearchResult,
+        'highlighted-search-result-message':
+          currentSearchResultMessageKind === 'message',
+        'highlighted-search-result-thread-starter':
+          currentSearchResultMessageKind === 'thread-starter',
       })}
     >
       <div className="message-row-content">
@@ -160,7 +168,7 @@ export const MessageRow = ({
             getHighlighted(
               parseSlackMessage(message.text, getUserById, parseEmoji),
               highlightPhrases,
-              isCurrentSearchResult
+              currentSearchResultMessageKind === 'message'
             )
           )}
           {hasFiles && selectedChatId != null && (

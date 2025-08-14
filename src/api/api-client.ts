@@ -35,7 +35,7 @@ export const apiClient = {
         return (
           'rows=' + String(options.rows) + '&start=' + String(options.start)
         );
-      } else if ('threadTs' in options) return 'thread_ts=' + options.threadTs;
+      } else if ('threadTs' in options) return 'thread-ts=' + options.threadTs;
       return '';
     })();
     const response = await fetch(`/api/messages/${chatId}?${optionsSearch}`);

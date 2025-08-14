@@ -1,4 +1,4 @@
-import { FC, useCallback, useMemo } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useThreadQuery } from '../api/use-queries';
 import { useStore } from '../store';
 import { SlackMessage } from '../types';
@@ -10,18 +10,23 @@ export const ThreadPanel: FC = () => {
     setSelectedThreadTs,
     selectedChatId,
     selectedThreadTs,
+    threadMessageIndex,
     isCurrentSearchResult,
   } = useStore(
     ({
-      actions: { setSelectedThreadTs },
       selectedThreadTs,
       selectedChatId,
-      actions: { isCurrentSearchResult },
+      threadMessageIndex,
+      actions: {
+        setSelectedThreadTs,
+        getCurrentSearchResultMessageKind: isCurrentSearchResult,
+      },
     }) => {
       return {
-        setSelectedThreadTs,
         selectedChatId,
         selectedThreadTs,
+        threadMessageIndex,
+        setSelectedThreadTs,
         isCurrentSearchResult,
       };
     }
@@ -77,6 +82,20 @@ export const ThreadPanel: FC = () => {
     return [parentMessage, ...replyMessages];
   }, [selectedThreadTs, messages]);
 
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (
+      threadMessageIndex !== null &&
+      scroller != null &&
+      threadMessages.length > 0
+    ) {
+      const row = scroller.querySelector('.highlighted-search-result-message');
+      if (row != null) {
+        row.scrollIntoView();
+      }
+    }
+  }, [scroller, threadMessageIndex, threadMessages.length]);
+
   return (
     <div className="thread-panel">
       <div className="thread-panel-header">
@@ -86,7 +105,7 @@ export const ThreadPanel: FC = () => {
         </button>
       </div>
 
-      <div className="thread-messages">
+      <div ref={setScroller} className="thread-messages">
         {isLoading ? (
           <div className="loading-indicator">Loading thread...</div>
         ) : error ? (
@@ -108,9 +127,10 @@ export const ThreadPanel: FC = () => {
                 message={message}
                 startOfCombinedMessageBlock={startOfCombinedMessageBlock}
                 endOfCombinedMessageBlock={endOfCombinedMessageBlock}
-                isCurrentSearchResult={
-                  selectedChatId != null &&
-                  isCurrentSearchResult(selectedChatId, message.ts)
+                currentSearchResultMessageKind={
+                  selectedChatId != null
+                    ? isCurrentSearchResult(selectedChatId, message.ts)
+                    : 'none'
                 }
               />
             );

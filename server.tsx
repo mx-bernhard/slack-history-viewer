@@ -103,14 +103,18 @@ async function createServer() {
   const getThread = memoize(
     async (chatId: string, threadTs: string) => {
       const threadSearchResponse = await search({
-        q: `thread_message_b: true AND chat_id_s: ${chatId} AND thread_ts: ${threadTs}`,
+        q: `chat_id_s: ${chatId} AND thread_ts_s: ${threadTs}`,
         rows: 10000,
         start: 0,
       });
       const filePaths = extractFilePaths(threadSearchResponse);
-      const messageInfos = (await getMessagesForChat(chatId, filePaths)).map(
-        messageInfo => messageInfo.message
-      );
+      const basePath = getDataBasePath();
+      const messageInfos = (
+        await getMessagesForChat(
+          chatId,
+          filePaths.map(filePath => path.join(basePath, filePath))
+        )
+      ).map(messageInfo => messageInfo.message);
       const threadMessages = messageInfos.filter(
         msg => msg.thread_ts === threadTs
       );
@@ -177,8 +181,15 @@ async function createServer() {
           }
           return;
         }
-        if ('threadTs' in query && query.threadTs != null) {
-          const chatThreads = await getThread(chatId, query.threadTs);
+        if ('thread-ts' in query) {
+          const threadTs = query['thread-ts'];
+          if (threadTs == null || typeof threadTs !== 'string') {
+            res
+              .status(400)
+              .json({ error: 'No proper thread-ts value supplied.' });
+            return;
+          }
+          const chatThreads = await getThread(chatId, threadTs);
           res.json(chatThreads);
           return;
         }

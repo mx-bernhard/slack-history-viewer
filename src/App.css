@@ -146,8 +146,12 @@
   padding-top: 4px;
 }
 
-.highlighted-search-result {
+.highlighted-search-result-message {
   background-color: rgba(255, 238, 0, 0.1);
+}
+
+.highlighted-search-result-thread-starter {
+  background-color: rgba(0, 132, 255, 0.1);
 }
 
 .message-row {
@@ -156,6 +160,12 @@
   align-items: flex-start;
   &:hover {
     background-color: #222;
+  }
+  &:hover.highlighted-search-result-message {
+    background-color: rgba(255, 238, 0, 0.2);
+  }
+  &:hover.highlighted-search-result-thread-starter {
+    background-color: rgba(0, 132, 255, 0.2);
   }
 }
 
