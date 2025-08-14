@@ -1,0 +1,39 @@
+.skeleton {
+  --from: #e5e7eb;
+  --to: #9ca3af;
+  background-color: var(--from);
+  border-radius: 8px;
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-color: var(--from);
+  }
+  50% {
+    background-color: var(--to);
+  }
+  100% {
+    background-color: var(--from);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    --from: #374151;
+    --to: #4b5563;
+  }
+}
+
+.fill {
+  width: calc(100% - 12px);
+  height: 50px;
+  margin: 6px;
+  box-sizing: border-box;
+}

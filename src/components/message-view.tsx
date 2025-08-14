@@ -6,6 +6,7 @@ import { useStore } from '../store.js';
 import { MessageRow } from './message-row';
 import { ThreadPanel } from './thread-panel';
 import { useIsClient } from './use-is-client';
+import { MessageRowSkeleton } from './message-row-skeleton.js';
 
 const createRowComponent = ({
   handleThreadClick,
@@ -28,7 +29,7 @@ const createRowComponent = ({
           : 'none'
     );
     if (isLoading || message == null) {
-      return <div>Loading...</div>;
+      return <MessageRowSkeleton />;
     }
     return (
       <MessageRow

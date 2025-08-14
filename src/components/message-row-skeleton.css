@@ -1,0 +1,13 @@
+.skeleton-root {
+  display: flex;
+}
+
+.skeleton-avatar {
+  width: 36px;
+  height: 36px;
+}
+
+.skeleton-message {
+  flex: 1;
+  height: 58px;
+}
