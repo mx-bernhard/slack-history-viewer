@@ -74,6 +74,45 @@ The server reads the location of the Slack export data from the `SLACK_HISTORY_D
 - **Default:** If `SLACK_HISTORY_DATA_PATH` is not set, the server expects the data to be in a directory named `data` relative to the project root (where `package.json` resides).
 - **Environment Variable:** You can set `SLACK_HISTORY_DATA_PATH` to an absolute or relative path pointing to your unpacked Slack export directory.
 
+## Archiving the slack workspace data
+
+Retrieve your Slack workspace export using [slackdump](https://github.com/rusq/slackdump). It is mandatory that it is in the file based format **in the end**. This is achieved by e.g. first archiving it in the database format (mentioned on the resume link below) and converting it later into the file based format. Run the slackdump binary and it will start in menu mode. Register your workspace and supply your credentials and then use the archive option (go through the options what you want, when resuming you do not seem to be able to change them later). The archive option allows you to interrupt it and [resume](https://github.com/rusq/slackdump/blob/master/cmd/slackdump/internal/resume/assets/resume.md) it. Use the convert option (`slackdump convert <location-of-archive-directory> <location-of-export-directory>`) after you are done. You can convert in a second terminal window while your export is still running to test out things.
+
+After converting, the root directory of the export must contain the following files (maybe not all of them depending on your workspace):
+
+- users.json
+- dms.json
+- channels.json
+- mpims.json
+- groups.json
+
+There should also be various directories in the root directory, each containing json files in the format YYYY-MM-DD (e.g. "2025-06-30.json")
+
+Either:
+
+- Set the `SLACK_HISTORY_DATA_PATH` environment variable to the path of the unzipped export directory when running the development server (e.g., `SLACK_HISTORY_DATA_PATH=/path/to/your/export`) by supplying that in a .env file the docker-compose.yml or supplying the .env file location with `--env-file <location-of-.env>`.
+- OR: Place the contents of the aforementioned folder into a directory named `data` in the project root.
+
+## Running the app
+
+Ensure docker with compose is installed. Then:
+
+```bash
+docker compose up --build
+```
+
+This builds the application container (if needed) and starts both the application container and the Solr container as defined in `docker-compose.yml`. The `-d` runs them in the background.
+
+Whenever you start the app, it automatically checks for new files and indexes those. It stores the already indexed file paths in a _processed_messages.db_. Indexing from start should only take a few minutes even for larger workspaces.
+
+## Accessing the Application
+
+The Slack Viewer should be accessible in your browser at `http://localhost:5173`. There is no real production mode and it does not support authentication.
+
+## Stopping the application
+
+Hit Ctrl+C in the terminal.
+
 ## Local Development
 
 To run the Slack Export Viewer locally for development:
@@ -84,13 +123,7 @@ To run the Slack Export Viewer locally for development:
    - Docker (for running the Solr search engine)
    - Docker Compose (for managing the Solr service, the app or both)
 
-2. **Place Slack Export Data:**
-   - Download your Slack workspace export and unzip it.
-   - Either:
-     - Place the **contents** of the unzipped folder into a directory named `data` in the project root.
-     - OR: Set the `SLACK_HISTORY_DATA_PATH` environment variable to the path of the unzipped export directory when running the development server (e.g., `SLACK_HISTORY_DATA_PATH=/path/to/your/export yarn dev`).
-
-3. **Install Dependencies:**
+2. **Install Dependencies:**
 
    ```bash
    nvm use
@@ -98,7 +131,7 @@ To run the Slack Export Viewer locally for development:
    yarn install
    ```
 
-4. **Run Development Server:**
+3. **Run Development Server:**
 
    There are two main ways to run during development:
 
@@ -122,70 +155,13 @@ To run the Slack Export Viewer locally for development:
 
    This starts the Vite/Express server locally. It will automatically attempt to connect to Solr at `http://localhost:8983` (the default).
 
-   **Option 2: Fully Dockerized Setup**
+### Update emojis
 
-   a. **Build and Start All Services:**
+Regenerates emojis - needed when the package emoji-datasource-google is updated or emojis-raw.ts is changed.
 
-   ```bash
-   docker compose up --build -d
-   ```
-
-   This builds the application container (if needed) and starts both the application container and the Solr container as defined in `docker-compose.yml`. The `-d` runs them in the background.
-
-   **Accessing the Application:**
-
-   In either setup, the Slack Viewer should be accessible in your browser at `http://localhost:5173`.
-
-5. **Initial Search Indexing:**
-   - When you start the application server for the first time (either locally via `yarn dev` or in Docker), it will automatically begin building the Solr search index from your Slack data.
-   - **This initial indexing process can take a significant amount of time**, depending on the size of your Slack export. Monitor the server logs for progress.
-   - Subsequent server starts will be much faster, as the system uses a local SQLite database (`processed_messages.db` created in the project root) to track already indexed messages and will only index new ones.
-
-## Building for Production
-
-To create an optimized production build:
-
-1. **Run the Build Command:**
-
-   ```bash
-   yarn build
-   ```
-
-   This command compiles the TypeScript code, bundles the frontend application using Vite, and prepares the server code.
-
-2. **Output:**
-   The production-ready files will be generated in the `dist/` directory. This typically includes:
-   - `dist/client/`: Optimized frontend assets (JS, CSS).
-   - `dist/server/`: Transpiled server code.
-
-3. **Running the Production Build:**
-   - Ensure the Node.js environment has access to the directory containing your Slack export data.
-   - Set the `SLACK_HISTORY_DATA_PATH` environment variable to the path of your Slack export directory.
-   - Run the server:
-
-   ```bash
-   export SLACK_HISTORY_DATA_PATH=/path/to/your/export # Example for Linux/macOS
-   # set SLACK_HISTORY_DATA_PATH=C:\path\to\your\export # Example for Windows CMD (untested)
-   # $env:SLACK_HISTORY_DATA_PATH = "C:\path\to\your\export" # Example for Windows PowerShell
-
-   NODE_ENV=production node dist/server.js
-   ```
-
-## Docker Deployment
-
-The project includes a `Dockerfile` and `docker-compose.yml` for containerized deployment. This is the recommended way to run the application in a stable environment.
-
-- **Services:** The `docker-compose.yml` defines two services:
-  - `app`: Runs the Node.js/Express/React application.
-  - `solr`: Runs the Apache Solr 9 search engine.
-- **Data Mounting:** It mounts a local `./data` directory (relative to `docker-compose.yml`) into the `app` container at `/app/data`.
-- **Environment Variable:** It sets `SLACK_HISTORY_DATA_PATH=/app/data` inside the `app` container.
-- **Solr Index Persistence:** It uses a named Docker volume (`solr_data`) to persist the Solr search index across container restarts.
-- **Usage:**
-  1. Place your unpacked Slack export data into a directory named `data` in the project root (next to `docker-compose.yml`).
-  2. Run `docker compose up --build -d`. The `--build` flag ensures the app image is up-to-date, and `-d` runs the services in the background.
-  3. Access the viewer at `http://localhost:5173`.
-  4. **Initial Indexing:** As with development, the first time the `app` container starts, it will begin indexing data into Solr. This might take a long time. Subsequent starts will use the SQLite tracking database (`processed_messages.db`, which will be created inside the `/app` directory within the container if running fully dockerized) to only index new data.
+```sh
+node --experimental-strip-types ./scripts/generate-emoji-map.ts
+```
 
 ### Schema reindex
 
@@ -194,14 +170,4 @@ When switching to a new version of this app and search doesn't work or causes re
 ```sh
 docker compose down --volume
 docker compose up -d
-```
-
-Reindexing may take some time depending on your slack workspace.
-
-## Update emojis
-
-Regenerates emojis - needed when the package emoji-datasource-google is updated or emojis-raw.ts is changed.
-
-```sh
-node --experimental-strip-types ./scripts/generate-emoji-map.ts
 ```
