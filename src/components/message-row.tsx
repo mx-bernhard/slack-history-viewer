@@ -13,10 +13,11 @@ import { getHighlighted } from './get-highlighted';
 import { AttachmentRenderer } from './message-attachments/attachment-renderer';
 import { BlockRenderer } from './message-blocks/block-renderer';
 import { ReactionsList } from './message-reactions/reactions-list';
+import { isNotUndefined } from 'typed-assert';
 
 const emptyArray: string[] = [];
 
-const userLocale = navigator.language; // e.g., "en-US", "fr-FR", "de-CH"
+const userLocale = navigator.language;
 
 const formatTime = (ts: string) =>
   new Intl.DateTimeFormat(userLocale, {
@@ -94,12 +95,14 @@ export const MessageRow = ({
 
   const user = message.user != null ? getUserById(message.user) : undefined;
 
-  const displayName =
-    user?.profile.display_name ??
-    user?.name ??
-    user?.profile.real_name ??
-    user?.id ??
-    'Unknown User';
+  const displayName = [
+    user?.profile.display_name,
+    user?.name,
+    user?.profile.real_name,
+    user?.id,
+    'Unknown User',
+  ].filter(name => name != null && name.trim().length > 0)[0];
+  isNotUndefined(displayName);
 
   const avatarUrl = user?.profile.image_72;
   const timestamp = toDate(message.ts);
