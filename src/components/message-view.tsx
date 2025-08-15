@@ -1,5 +1,4 @@
 import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
-import useMeasure from 'react-use-measure';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { useChatInfoQuery, useMessageQuery } from '../api/use-queries';
 import { useStore } from '../store.js';
@@ -69,7 +68,6 @@ const ClientMessageView = () => {
       };
     }
   );
-  const [refCallback] = useMeasure({ scroll: true });
   const isClient = useIsClient();
 
   const { data: countInfo } = useChatInfoQuery(selectedChatId);
@@ -117,7 +115,7 @@ const ClientMessageView = () => {
       return <div className="empty-message">No messages in this chat</div>;
     } else {
       return (
-        <div ref={refCallback} className="message-view-inner">
+        <div className="message-view-inner">
           <div
             className="message-list-container"
             style={{

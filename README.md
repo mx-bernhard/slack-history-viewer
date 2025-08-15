@@ -51,21 +51,27 @@ See the full license text in the `LICENSE` file.
   - ts_s: timestamp of message as string in epoch seconds including 6 decimal places
   - thread_ts_s: timestamp of thread starting message as string in epoch seconds including 6 decimal places
 
-## Future Enhancements
-
-While the viewer covers core functionality, potential future enhancements include:
+## Future enhancements / fixes
 
 - Custom Emoji Display: Support for rendering custom emojis included in the Slack export.
-- Add more context types:
+- Add more message block types:
   - forwarded message with link that navigates to the message
+  - spoiler tags
   - ...
-- when navigating through search result, move to message after measure infos are reported
-- highlight the message itself, not just the search text. The search text is not always available
-  but the message is.
 - show tree structure by chat types
-- combine multiple messages from the same user in one block instead of multiple blocks with meta infos for each.
 - localize all texts
-- search input history
+- search input history (what you have typed into the search field before)
+- index the shown user name instead of internal user name that was in the original json
+- index texts from attachment previews and other substructures that are allowed in one message, offer both a combined and indvidiual fields for flexibility
+- provide a better search experience:
+  - allow to go back to search results
+  - show search results along actual message in a separate panel that can be toggled
+  - offer various clickable search templates that are added to the search input so that learning the solr syntax is not required most of the time
+  - use enter key to search again
+  - show "nothing found" page if nothing was found
+- use a router so that most of the pages can be bookmarked
+- show the workspace with the permissions of another user
+- allow multiple workspaces
 
 ## Configuration
 

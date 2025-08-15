@@ -5817,19 +5817,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-use-measure@npm:2.1.7":
-  version: 2.1.7
-  resolution: "react-use-measure@npm:2.1.7"
-  peerDependencies:
-    react: ">=16.13"
-    react-dom: ">=16.13"
-  peerDependenciesMeta:
-    react-dom:
-      optional: true
-  checksum: 10/d3cbd359b97728654904a7b3b42c2bcac95596702d482bd497362869eeb040f0e585eb7073cfe76a6055783215581f5db5d2be3ba5b78668f0dd0be5b3330e67
-  languageName: node
-  linkType: hard
-
 "react-virtuoso@npm:4.14.0":
   version: 4.14.0
   resolution: "react-virtuoso@npm:4.14.0"
@@ -6420,7 +6407,6 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-markdown: "npm:^10.1.0"
-    react-use-measure: "npm:2.1.7"
     react-virtuoso: "npm:4.14.0"
     remark-gfm: "npm:^4.0.1"
     sqlite: "npm:^5.1.1"
