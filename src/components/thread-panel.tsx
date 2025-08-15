@@ -89,10 +89,14 @@ export const ThreadPanel: FC = () => {
       scroller != null &&
       threadMessages.length > 0
     ) {
-      const row = scroller.querySelector('.highlighted-search-result-message');
-      if (row != null) {
-        row.scrollIntoView();
-      }
+      setTimeout(() => {
+        const row = scroller.querySelector(
+          '.highlighted-current-search-result-message'
+        );
+        if (row != null) {
+          row.scrollIntoView({ block: 'center' });
+        }
+      }, 50);
     }
   }, [scroller, threadMessageIndex, threadMessages.length]);
 

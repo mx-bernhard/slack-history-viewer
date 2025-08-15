@@ -196,7 +196,7 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
                 );
 
                 const threadMessageIndex = threadMessages.findIndex(
-                  message => message.ts === searchResult.threadTs
+                  message => message.ts === searchResult.ts
                 );
                 const threadStartingMessage = threadMessages.at(-1);
 

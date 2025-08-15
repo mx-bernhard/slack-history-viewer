@@ -1,28 +1,26 @@
-import { FC, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { FC, useCallback, useEffect, useMemo } from 'react';
+import { Virtuoso, VirtuosoProps } from 'react-virtuoso';
 import { useChatInfoQuery, useMessageQuery } from '../api/use-queries';
 import { useStore } from '../store.js';
 import { MessageRow } from './message-row';
-import { ThreadPanel } from './thread-panel';
-import { useIsClient } from './use-is-client';
 import { MessageRowSkeleton } from './message-row-skeleton.js';
+import { ThreadPanel } from './thread-panel';
+import { useSpecialVirtuosoRef } from './use-special-virtuoso-ref.js';
 
 const createRowComponent = ({
   handleThreadClick,
-  selectedChatId,
 }: {
   handleThreadClick: (threadTs?: string) => void;
-  selectedChatId: string | null;
 }) => {
   const Component: FC<{ index: number }> = ({ index }: { index: number }) => {
+    const selectedChatId = useStore(st => st.selectedChatId);
     const { isLoading, data } = useMessageQuery({
       chatId: selectedChatId,
       messageIndex: index,
     });
-
     const message = data?.message;
     const currentSearchResultMessageKind = useStore(
-      ({ actions: { getCurrentSearchResultMessageKind } }) =>
+      ({ selectedChatId, actions: { getCurrentSearchResultMessageKind } }) =>
         selectedChatId != null && message != null
           ? getCurrentSearchResultMessageKind(selectedChatId, message.ts)
           : 'none'
@@ -45,7 +43,23 @@ const createRowComponent = ({
   return (index: number) => <Component index={index} />;
 };
 
-const ClientMessageView = () => {
+const baseSingleRowVirtuosoProps = (message: string, className: string) =>
+  ({
+    itemContent: () => <div className={className}>{message}</div>,
+    totalCount: 1,
+  }) satisfies Partial<VirtuosoProps<string, object>>;
+
+const loadingMessagesVirtuosoProps = {
+  ...baseSingleRowVirtuosoProps('Loading message...', 'loading-indicator'),
+} satisfies Partial<VirtuosoProps<string, object>>;
+const noMessagesInThisChatVirtuosoProps = {
+  ...baseSingleRowVirtuosoProps('No messages in this chat', 'empty-message'),
+} satisfies Partial<VirtuosoProps<string, object>>;
+const noChatSelectedVirtuosoProps = {
+  ...baseSingleRowVirtuosoProps('No chat selected', 'no-chat-selected'),
+} satisfies Partial<VirtuosoProps<string, object>>;
+
+export const MessageView = () => {
   const {
     selectedChatId,
     selectedThreadTs,
@@ -68,7 +82,6 @@ const ClientMessageView = () => {
       };
     }
   );
-  const isClient = useIsClient();
 
   const { data: countInfo } = useChatInfoQuery(selectedChatId);
 
@@ -82,72 +95,69 @@ const ClientMessageView = () => {
     },
     [selectedThreadTs, setSelectedThreadTs]
   );
-  const virtuosoRef = useRef<VirtuosoHandle | null>(null);
+  const { virtuosoAvailable, virtuosoRef } = useSpecialVirtuosoRef();
+  const canScrollToItem = selectedChatId != null && virtuosoAvailable;
 
-  const canScrollToItem =
-    isClient && selectedChatId != null && virtuosoRef.current != null;
   useEffect(() => {
     if (canScrollToItem) {
       const scrollToMessageIndex = messageIndex ?? (countInfo?.total ?? 1) - 1;
       setTimeout(() => {
-        virtuosoRef.current?.scrollToIndex(scrollToMessageIndex);
+        virtuosoRef.current?.scrollToIndex({
+          index: scrollToMessageIndex,
+          align: 'center',
+        });
       }, 100);
     }
-  }, [canScrollToItem, countInfo?.total, messageIndex]);
+  }, [canScrollToItem, countInfo?.total, messageIndex, virtuosoRef]);
 
   const renderRow = useMemo(
     () =>
       createRowComponent({
         handleThreadClick,
-        selectedChatId,
       }),
-    [handleThreadClick, selectedChatId]
+    [handleThreadClick]
   );
+  useEffect(() => {
+    console.log('mounted');
+    return () => {
+      console.log('unmounted');
+    };
+  }, []);
 
-  if (!isClient) {
-    return <div className="message-view-container">Loading messages...</div>;
-  }
-
-  const content = (() => {
-    if (countInfo == null) {
-      return <div className="loading-indicator">Loading messages...</div>;
+  const virtuosoProps = (() => {
+    if (selectedChatId == null) {
+      return noChatSelectedVirtuosoProps;
+    } else if (countInfo == null) {
+      return loadingMessagesVirtuosoProps;
     } else if (countInfo.total == 0) {
-      return <div className="empty-message">No messages in this chat</div>;
+      return noMessagesInThisChatVirtuosoProps;
     } else {
-      return (
-        <div className="message-view-inner">
-          <div
-            className="message-list-container"
-            style={{
-              width: selectedThreadTs != null ? 'calc(100% - 350px)' : '100%',
-            }}
-          >
-            <Virtuoso
-              className="message-list"
-              totalCount={countInfo.total}
-              itemContent={renderRow}
-              ref={virtuosoRef}
-            />
-          </div>
-        </div>
-      );
+      return { totalCount: countInfo.total } satisfies Partial<
+        VirtuosoProps<string, object>
+      >;
     }
   })();
 
   return (
     <div className="message-view-container">
-      {content}
+      <div className="message-view-inner">
+        <div
+          className="message-list-container"
+          style={{
+            width: selectedThreadTs != null ? 'calc(100% - 350px)' : '100%',
+          }}
+        >
+          <Virtuoso
+            className="message-list"
+            itemContent={renderRow}
+            ref={virtuosoRef}
+            {...virtuosoProps}
+          />
+        </div>
+      </div>
       {selectedThreadTs != null && selectedChatId != null && <ThreadPanel />}
     </div>
   );
-};
-
-export const MessageView = () => {
-  const isClient = useIsClient();
-  if (isClient) {
-    return <ClientMessageView />;
-  }
-  return null;
 };
 
 export function getId(chatId: string, ts: string) {

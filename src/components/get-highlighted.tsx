@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 export const getHighlighted = (
   parsedText: string | null | undefined,
   highlightPhrases: string[],
-  isCurrentSearchResult: boolean
+  mode: 'current' | 'any' | 'none'
 ): string | ReactNode | null => {
   if (parsedText == null) return null;
 
@@ -18,9 +18,11 @@ export const getHighlighted = (
     ) ? (
       <mark
         style={
-          isCurrentSearchResult
+          mode === 'current'
             ? { backgroundColor: '#fff2b3' }
-            : { backgroundColor: '#rgb(205 191 109)' }
+            : mode === 'any'
+              ? { backgroundColor: '#rgb(205 191 109)' }
+              : {}
         }
         key={i}
       >

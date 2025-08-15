@@ -1,8 +1,8 @@
 import classNames from 'classnames';
 import { CSSProperties, useCallback, useMemo } from 'react';
+import { isNotUndefined } from 'typed-assert';
 import { useEmoji } from '../contexts/emoji-context';
 import { useUsers } from '../contexts/user-context';
-import { SearchResultDocument } from '../server/search-indexer.js';
 import { useStore } from '../store';
 import { SlackMessage } from '../types.js';
 import { isNotEmpty } from '../utils/is-not-empty';
@@ -13,9 +13,7 @@ import { getHighlighted } from './get-highlighted';
 import { AttachmentRenderer } from './message-attachments/attachment-renderer';
 import { BlockRenderer } from './message-blocks/block-renderer';
 import { ReactionsList } from './message-reactions/reactions-list';
-import { isNotUndefined } from 'typed-assert';
-
-const emptyArray: string[] = [];
+import { useHighlightPhrases } from './use-highlight-phrases.js';
 
 const userLocale = navigator.language;
 
@@ -39,29 +37,13 @@ export const MessageRow = ({
   endOfCombinedMessageBlock: boolean;
   currentSearchResultMessageKind: 'message' | 'thread-starter' | 'none';
 }) => {
-  const { selectedChatId, highlightPhrases } = useStore(
-    ({
+  const { selectedChatId } = useStore(({ selectedChatId }) => {
+    return {
       selectedChatId,
-      currentResultIndex,
-      actions: {
-        getSearchResults,
-        getCurrentSearchResultMessageKindOfCurrentChat,
-      },
-    }) => {
-      const searchResults = getSearchResults();
-      const currentSearchResult: SearchResultDocument | undefined =
-        searchResults[currentResultIndex];
+    };
+  });
 
-      return {
-        selectedChatId,
-        highlightPhrases:
-          getCurrentSearchResultMessageKindOfCurrentChat(message.ts) ===
-          'message'
-            ? (currentSearchResult?.highlightPhrases ?? emptyArray)
-            : emptyArray,
-      };
-    }
-  );
+  const { highlightPhrases, mode } = useHighlightPhrases(message.ts);
 
   const replyCount = message.reply_count ?? 0;
   const { getUserById } = useUsers();
@@ -125,10 +107,10 @@ export const MessageRow = ({
       className={classNames('message-row', {
         'message-row-end': endOfCombinedMessageBlock,
         'message-row-start': startOfCombinedMessageBlock,
-        'highlighted-search-result-message':
-          currentSearchResultMessageKind === 'message',
-        'highlighted-search-result-thread-starter':
+        'highlighted-current-search-result-message': mode === 'current',
+        'highlighted-current-search-result-thread-starter':
           currentSearchResultMessageKind === 'thread-starter',
+        'highlighted-any-search-result-message': mode === 'any',
       })}
     >
       <div className="message-row-content">
@@ -168,7 +150,7 @@ export const MessageRow = ({
             getHighlighted(
               parseSlackMessage(message.text, getUserById, parseEmoji),
               highlightPhrases,
-              currentSearchResultMessageKind === 'message'
+              mode
             )
           )}
           {hasFiles && selectedChatId != null && (

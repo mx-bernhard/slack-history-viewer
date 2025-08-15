@@ -146,12 +146,16 @@
   padding-top: 4px;
 }
 
-.highlighted-search-result-message {
+.highlighted-current-search-result-message {
   background-color: rgba(255, 238, 0, 0.1);
 }
 
-.highlighted-search-result-thread-starter {
+.highlighted-current-search-result-thread-starter {
   background-color: rgba(0, 132, 255, 0.1);
+}
+
+.highlighted-any-search-result-message {
+  background-color: rgba(255, 249, 167, 0.1);
 }
 
 .message-row {
@@ -161,10 +165,10 @@
   &:hover {
     background-color: #222;
   }
-  &:hover.highlighted-search-result-message {
+  &:hover.highlighted-current-search-result-message {
     background-color: rgba(255, 238, 0, 0.2);
   }
-  &:hover.highlighted-search-result-thread-starter {
+  &:hover.highlighted-current-search-result-thread-starter {
     background-color: rgba(0, 132, 255, 0.2);
   }
 }
@@ -244,7 +248,8 @@
 
 .loading-indicator,
 .error-message,
-.empty-message {
+.empty-message,
+.no-chat-selected {
   padding: 20px;
   text-align: center;
   color: #888;

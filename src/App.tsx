@@ -1,11 +1,11 @@
 import './App.css';
 import ChatList from './components/chat-list';
+import { ErrorBoundary } from './components/error-boundary';
 import { MessageView } from './components/message-view';
 import { SearchInput } from './components/search-input';
 import SearchResults from './components/search-results';
 import { useIsClient } from './components/use-is-client';
 import { StoreProvider, useStore } from './store';
-import { ErrorBoundary } from './components/error-boundary';
 
 export const App = () => {
   const isClient = useIsClient();
@@ -21,13 +21,14 @@ export const App = () => {
 };
 
 function InternalApp() {
-  const { selectedChatId, searchResults, currentResultIndex } = useStore(
+  const { searchResults, currentResultIndex } = useStore(
     ({ currentResultIndex, selectedChatId, searchResults }) => ({
       selectedChatId,
       currentResultIndex,
       searchResults,
     })
   );
+
   const showSearchResult =
     searchResults === 'loading' ||
     searchResults instanceof Error ||
@@ -49,7 +50,7 @@ function InternalApp() {
               <ChatList />
             </div>
             <div className="content-view">
-              {selectedChatId != null && <MessageView key={selectedChatId} />}
+              <MessageView />
             </div>
           </>
         )}

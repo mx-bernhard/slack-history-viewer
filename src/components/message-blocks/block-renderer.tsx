@@ -1,9 +1,3 @@
-import { isEmpty, thru } from 'lodash-es';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { useEmoji } from '../../contexts/emoji-context';
-import { useUsers } from '../../contexts/user-context';
-import { useStore } from '../../store';
 import type {
   Block,
   RichTextBlock,
@@ -11,9 +5,15 @@ import type {
   RichTextElement,
   SectionBlock,
 } from '@slack/web-api';
-import { getHighlighted } from '../get-highlighted';
+import { isEmpty, thru } from 'lodash-es';
 import { ReactElement, ReactNode } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { isNever } from 'typed-assert';
+import { useEmoji } from '../../contexts/emoji-context';
+import { useUsers } from '../../contexts/user-context';
+import { getHighlighted } from '../get-highlighted';
+import { useHighlightPhrases } from '../use-highlight-phrases';
 
 export const BlockRenderer = ({
   blocks,
@@ -136,8 +136,6 @@ const RichTextElementsRenderer = ({
     ))
     .map(reactElement => wrapElement({ children: reactElement }));
 
-const emptyStringArray: string[] = [];
-
 const TextElement = ({
   element,
   messageTs,
@@ -145,34 +143,9 @@ const TextElement = ({
   element: RichTextElement;
   messageTs: string;
 }) => {
+  const { highlightPhrases, mode } = useHighlightPhrases(messageTs);
   const { getUserById } = useUsers();
   const { parseEmoji } = useEmoji();
-
-  const { highlightPhrases, currentSearchResultMessageKind } = useStore(
-    ({
-      currentResultIndex,
-      searchResults,
-      actions: {
-        getCurrentSearchResultMessageKindOfCurrentChat:
-          getSearchResultMessageKind,
-      },
-    }) => {
-      const currentSearchResultMessageKind =
-        getSearchResultMessageKind(messageTs);
-      const highlightPhrases =
-        currentResultIndex !== -1 &&
-        searchResults != null &&
-        searchResults instanceof Array
-          ? (searchResults[currentResultIndex]?.highlightPhrases ??
-            emptyStringArray)
-          : emptyStringArray;
-
-      return {
-        highlightPhrases,
-        currentSearchResultMessageKind,
-      };
-    }
-  );
 
   const { type } = element;
 
@@ -182,7 +155,7 @@ const TextElement = ({
       const maybeHighlightedText = getHighlighted(
         textContent,
         highlightPhrases,
-        currentSearchResultMessageKind === 'message'
+        mode
       );
       if (element.style?.bold != null) {
         return <strong>{maybeHighlightedText}</strong>;
@@ -205,11 +178,7 @@ const TextElement = ({
       );
       return (
         <a href={url} target="_blank" rel="noopener noreferrer">
-          {getHighlighted(
-            linkText,
-            highlightPhrases,
-            currentSearchResultMessageKind === 'message'
-          )}
+          {getHighlighted(linkText, highlightPhrases, mode)}
         </a>
       );
     }
