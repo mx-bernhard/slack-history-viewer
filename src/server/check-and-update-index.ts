@@ -74,7 +74,7 @@ export const checkAndUpdateMessageIndex = async (chatId: string) => {
         ts_dt: 0,
         message_index_l: null,
       };
-      const highestMessageIndex = message_index_l as number | null; // fix the tsconfig for index access
+      const highestMessageIndex = message_index_l;
       assert(chatIdResponseValue === chatId);
       const everythingInvalidFallback = {
         messageIndexOfLastValidMessage: -1,
@@ -89,7 +89,7 @@ export const checkAndUpdateMessageIndex = async (chatId: string) => {
         sort: 'ts_dt asc',
       });
       return result.response.docs.length === 1 &&
-        result.response.docs[0].ts_dt === ts
+        result.response.docs[0]?.ts_dt === ts
         ? {
             messageIndexOfLastValidMessage: highestMessageIndex,
             timestampOfLastValidMessage: new Date(

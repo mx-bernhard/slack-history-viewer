@@ -1,4 +1,4 @@
-import { isNotNull } from 'typed-assert';
+import { isNotNull, isNotUndefined } from 'typed-assert';
 import {
   findChatDirectoryPath,
   getAllChats,
@@ -261,11 +261,11 @@ export async function searchMessages(
 
         if (highlightedSnippets && highlightedSnippets.length > 0) {
           const snippet = highlightedSnippets[0];
-
+          isNotUndefined(snippet);
           let match;
 
           while ((match = HIGHLIGHT_EXTRACT_REGEX.exec(snippet)) !== null) {
-            if (match[1]) {
+            if (match[1] != null) {
               highlightPhrases.push(match[1]);
             }
           }

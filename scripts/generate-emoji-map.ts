@@ -9,7 +9,7 @@ import { slackToUnicodeMap } from './emojis-raw.ts';
 const slackToUnicodeWithoutVariations = slackToUnicodeMap.flatMap(
   ({ short_names, unified }) => {
     return short_names.map(shortName => {
-      return [unified, shortName];
+      return [unified, shortName] as const;
     });
   }
 );
