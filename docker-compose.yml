@@ -1,7 +1,6 @@
 services:
   slack-viewer:
     build: .
-    container_name: slack-viewer-app
     ports:
       - '5173:5173'
     volumes:
@@ -21,7 +20,6 @@ services:
 
   solr:
     image: solr:9
-    container_name: slack-viewer-solr
     ports:
       - '8983:8983'
     volumes:
