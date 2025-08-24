@@ -28,6 +28,7 @@ data/
 processed_messages.db
 processed_messages.db-journal
 .env
+.env.*
 
 .pnp.*
 .yarn/*
