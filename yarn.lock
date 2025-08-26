@@ -2285,7 +2285,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chokidar@npm:^3.5.2, chokidar@npm:^3.5.3":
+"chokidar@npm:^3.5.2, chokidar@npm:^3.6.0":
   version: 3.6.0
   resolution: "chokidar@npm:3.6.0"
   dependencies:
@@ -3343,7 +3343,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-glob@npm:^3.2.11, fast-glob@npm:^3.3.2":
+"fast-glob@npm:^3.3.2":
   version: 3.3.3
   resolution: "fast-glob@npm:3.3.3"
   dependencies:
@@ -3527,7 +3527,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fs-extra@npm:^11.1.0":
+"fs-extra@npm:^11.3.0":
   version: 11.3.1
   resolution: "fs-extra@npm:11.3.1"
   dependencies:
@@ -6038,7 +6038,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"picocolors@npm:^1.0.0, picocolors@npm:^1.1.1":
+"picocolors@npm:^1.1.1":
   version: 1.1.1
   resolution: "picocolors@npm:1.1.1"
   checksum: 10/e1cf46bf84886c79055fdfa9dcb3e4711ad259949e3565154b004b260cd356c5d54b31a1437ce9782624bf766272fe6b0154f5f0c744fb7af5d454d2b60db045
@@ -6964,7 +6964,7 @@ __metadata:
     typescript-eslint: "npm:latest"
     vite: "npm:^6.3.1"
     vite-node: "npm:^3.1.1"
-    vite-plugin-static-copy: "npm:2.3.1"
+    vite-plugin-static-copy: "npm:3.1.2"
     zustand: "npm:^5.0.3"
   languageName: unknown
   linkType: soft
@@ -7778,18 +7778,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-plugin-static-copy@npm:2.3.1":
-  version: 2.3.1
-  resolution: "vite-plugin-static-copy@npm:2.3.1"
+"vite-plugin-static-copy@npm:3.1.2":
+  version: 3.1.2
+  resolution: "vite-plugin-static-copy@npm:3.1.2"
   dependencies:
-    chokidar: "npm:^3.5.3"
-    fast-glob: "npm:^3.2.11"
-    fs-extra: "npm:^11.1.0"
+    chokidar: "npm:^3.6.0"
+    fs-extra: "npm:^11.3.0"
     p-map: "npm:^7.0.3"
-    picocolors: "npm:^1.0.0"
+    picocolors: "npm:^1.1.1"
+    tinyglobby: "npm:^0.2.14"
   peerDependencies:
-    vite: ^5.0.0 || ^6.0.0
-  checksum: 10/2b4ad57c6f14533986d5cbf0021b8ec5cec2f7539005049c5e2842157deaac6cfe02a023d8e09e69c824b3e4a1a1145c2e1ae90c4eb824ec3afef9dd18b0c69a
+    vite: ^5.0.0 || ^6.0.0 || ^7.0.0
+  checksum: 10/a51999bbc4f2a88976a70f9e359ee6b8deb822d9ec7a9ae5bece6d61997810fe2600b78012abc0867594e9fcb7688842b62e520008c2cd7b778e0ffabce6c2db
   languageName: node
   linkType: hard
 
