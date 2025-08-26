@@ -1,8 +1,18 @@
+import { useLocalStorage } from '@uidotdev/usehooks';
 import { useChatsQuery } from '../api/use-queries';
 import { useStore } from '../store';
 import { ChatInfo } from '../types';
 import { useUsers } from '../contexts/user-context';
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
+import { entries, groupBy, values } from 'lodash-es';
+
+const groupMapping: Record<string, string> = {
+  dm: 'direct messages',
+  channel: 'public channels',
+  mpim: 'chats',
+  group: 'private channels',
+};
 
 const ChatItem = ({
   chat,
@@ -19,7 +29,6 @@ const ChatItem = ({
       setSelectedChatId,
     })
   );
-
   const ref = useRef<HTMLLIElement>(null);
   useEffect(() => {
     if (ref.current && chat.id === selectedChatId) {
@@ -45,7 +54,8 @@ const ChatItem = ({
     >
       {avatarElement}
       <span className="chat-name">
-        {chat.name} ({chat.type}){chat.isArchived ? ' [Archived]' : ''}
+        {chat.name}
+        {chat.isArchived ? ' [Archived]' : ''}
       </span>
     </li>
   );
@@ -54,6 +64,20 @@ const ChatItem = ({
 const ChatList = () => {
   const { data: chats = [], isLoading, error } = useChatsQuery();
   const { getUserById } = useUsers();
+  const groupedChats = useMemo(
+    () => groupBy(chats, chat => chat.type),
+    [chats]
+  );
+  const [expandedItems, saveExpandedItems] = useLocalStorage(
+    'chat-tree-open',
+    values(groupMapping)
+  );
+  const handleExpandedItemsChange = useCallback(
+    (_: React.SyntheticEvent | null, itemIds: string[]) => {
+      saveExpandedItems(itemIds);
+    },
+    [saveExpandedItems]
+  );
 
   if (isLoading) {
     return <div style={{ padding: '20px' }}>Loading chats...</div>;
@@ -67,7 +91,6 @@ const ChatList = () => {
       </div>
     );
   }
-
   const GroupAvatar = () => <div className="chat-avatar group-avatar">👥</div>;
 
   return (
@@ -77,46 +100,78 @@ const ChatList = () => {
         <p style={{ padding: '20px' }}>No chats found.</p>
       ) : (
         <ul className="chat-list-ul">
-          {chats.map((chat: ChatInfo) => {
-            let avatarElement = <GroupAvatar />;
-            let avatarTitle = chat.name;
+          <SimpleTreeView
+            expandedItems={expandedItems}
+            onExpandedItemsChange={handleExpandedItemsChange}
+          >
+            {entries(groupedChats).map(([groupKey, chatsOfGroup]) => {
+              return (
+                <TreeItem
+                  key={groupKey}
+                  itemId={groupKey}
+                  label={groupMapping[groupKey] ?? groupKey}
+                >
+                  {chatsOfGroup.map((chat: ChatInfo) => {
+                    const { avatarElement, avatarTitle } = (() => {
+                      const avatarTitle = chat.name;
 
-            if (chat.type === 'dm' && chat.otherMemberIds?.length === 1) {
-              const otherUserId = chat.otherMemberIds[0];
-              const user =
-                otherUserId != null ? getUserById(otherUserId) : null;
-              const userDisplayName =
-                user?.profile.display_name ?? user?.name ?? 'User';
-              const displayNameForAvatar = userDisplayName || '?';
-              avatarTitle = userDisplayName;
-              const avatarUrl = user?.profile.image_72;
+                      if (
+                        chat.type === 'dm' &&
+                        chat.otherMemberIds?.length === 1
+                      ) {
+                        const otherUserId = chat.otherMemberIds[0];
+                        const user =
+                          otherUserId != null ? getUserById(otherUserId) : null;
+                        const userDisplayName =
+                          user?.profile.display_name ?? user?.name ?? 'User';
+                        const avatarUrl = user?.profile.image_72;
 
-              if (typeof avatarUrl === 'string' && avatarUrl.length > 0) {
-                avatarElement = (
-                  <img
-                    src={avatarUrl}
-                    alt={`${userDisplayName} avatar`}
-                    className="chat-avatar user-avatar"
-                  />
-                );
-              } else {
-                avatarElement = (
-                  <div className="chat-avatar user-avatar-placeholder">
-                    {displayNameForAvatar.charAt(0).toUpperCase()}
-                  </div>
-                );
-              }
-            }
+                        if (
+                          typeof avatarUrl === 'string' &&
+                          avatarUrl.length > 0
+                        ) {
+                          return {
+                            avatarTitle: userDisplayName,
+                            avatarElement: (
+                              <img
+                                src={avatarUrl}
+                                alt={`${userDisplayName} avatar`}
+                                className="chat-avatar user-avatar"
+                              />
+                            ),
+                          };
+                        } else {
+                          return {
+                            avatarTitle,
+                            avatarElement: (
+                              <div className="chat-avatar user-avatar-placeholder">
+                                {(userDisplayName || '?')
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </div>
+                            ),
+                          };
+                        }
+                      }
+                      return {
+                        avatarTitle,
+                        avatarElement: <GroupAvatar />,
+                      };
+                    })();
 
-            return (
-              <ChatItem
-                key={chat.id}
-                chat={chat}
-                avatarElement={avatarElement}
-                avatarTitle={avatarTitle}
-              />
-            );
-          })}
+                    return (
+                      <ChatItem
+                        key={chat.id}
+                        chat={chat}
+                        avatarElement={avatarElement}
+                        avatarTitle={avatarTitle}
+                      />
+                    );
+                  })}
+                </TreeItem>
+              );
+            })}
+          </SimpleTreeView>
         </ul>
       )}
     </div>
