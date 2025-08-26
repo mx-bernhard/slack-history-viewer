@@ -1,6 +1,6 @@
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import pDebounce from 'p-debounce';
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { createContext, ReactNode, useContext, useRef, useState } from 'react';
 import {
   create,
   StoreApi,
@@ -12,6 +12,7 @@ import { createSearchQuery } from './api/use-queries';
 import { useIsClient } from './components/use-is-client';
 import { SearchResultDocument } from './server/search-indexer';
 import { apiClient } from './api/api-client';
+import { isEqual } from 'lodash-es';
 
 export interface SlackHistoryViewerStore {
   searchQueryInput: string;
@@ -227,12 +228,28 @@ const createStore = ({ queryClient }: { queryClient: QueryClient }) =>
     };
   });
 
+const useDeep = <S, U>(selector: (state: S) => U): ((state: S) => U) => {
+  const selectedRef = useRef<U | 'uninitialized'>('uninitialized');
+  const newSelector = (state: S): U => {
+    const newSelected = selector(state);
+    if (!isEqual(selectedRef.current, newSelected)) {
+      selectedRef.current = newSelected;
+    }
+    return selectedRef.current as U;
+  };
+  return newSelector;
+};
+
 export const useStore = <TSlice,>(
-  selector: (state: SlackHistoryViewerStore) => TSlice
+  selector: (state: SlackHistoryViewerStore) => TSlice,
+  mode: 'shallow' | 'deep' = 'shallow'
 ) => {
   const store = useContext(StoreContext);
   if (!store) {
     throw new Error('Store not found');
   }
-  return useZustandStore(store, useShallow(selector));
+  return useZustandStore(
+    store,
+    (mode === 'shallow' ? useShallow : useDeep)(selector)
+  );
 };

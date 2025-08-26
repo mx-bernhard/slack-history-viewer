@@ -5,7 +5,7 @@ import { ChatInfo } from '../types';
 import { useUsers } from '../contexts/user-context';
 import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
-import { entries, groupBy, values } from 'lodash-es';
+import { entries, groupBy, isArray, uniq, values } from 'lodash-es';
 
 const groupMapping: Record<string, string> = {
   dm: 'direct messages',
@@ -64,14 +64,41 @@ const ChatItem = ({
 const ChatList = () => {
   const { data: chats = [], isLoading, error } = useChatsQuery();
   const { getUserById } = useUsers();
-  const groupedChats = useMemo(
-    () => groupBy(chats, chat => chat.type),
-    [chats]
-  );
-  const [expandedItems, saveExpandedItems] = useLocalStorage(
+  const [savedExpandedItems, saveExpandedItems] = useLocalStorage(
     'chat-tree-open',
     values(groupMapping)
   );
+  const { searchResultChatIds } = useStore(
+    ({ searchResults, searchQuery }) => ({
+      searchResultChatIds:
+        isArray(searchResults) && searchQuery.trim().length > 0
+          ? uniq(searchResults.map(searchResult => searchResult.chatId))
+          : null,
+    }),
+    'deep'
+  );
+
+  const chatsForSearchResult = useMemo(
+    () =>
+      searchResultChatIds != null
+        ? chats.filter(chat => searchResultChatIds.includes(chat.id))
+        : null,
+    [chats, searchResultChatIds]
+  );
+
+  const groupedChats = useMemo(
+    () => groupBy(chatsForSearchResult ?? chats, chat => chat.type),
+    [chats, chatsForSearchResult]
+  );
+
+  const expandedItems = useMemo(
+    () =>
+      chatsForSearchResult != null
+        ? uniq(chatsForSearchResult.map(chat => chat.type))
+        : savedExpandedItems,
+    [chatsForSearchResult, savedExpandedItems]
+  );
+
   const handleExpandedItemsChange = useCallback(
     (_: React.SyntheticEvent | null, itemIds: string[]) => {
       saveExpandedItems(itemIds);
