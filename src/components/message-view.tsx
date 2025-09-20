@@ -1,10 +1,12 @@
-import { FC, useCallback, useEffect, useMemo } from 'react';
-import { Virtuoso, VirtuosoProps } from 'react-virtuoso';
-import { useChatInfoQuery, useMessageQuery } from '../api/use-queries';
+import type { FC } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import type { VirtuosoProps } from 'react-virtuoso';
+import { Virtuoso } from 'react-virtuoso';
+import { useChatInfoQuery, useMessageQuery } from '../api/use-queries.js';
 import { useStore } from '../store.js';
-import { MessageRow } from './message-row';
+import { MessageRow } from './message-row.js';
 import { MessageRowSkeleton } from './message-row-skeleton.js';
-import { ThreadPanel } from './thread-panel';
+import { ThreadPanel } from './thread-panel.js';
 import { useSpecialVirtuosoRef } from './use-special-virtuoso-ref.js';
 
 const createRowComponent = ({
@@ -40,7 +42,9 @@ const createRowComponent = ({
       />
     );
   };
-  return (index: number) => <Component index={index} />;
+  return function RowComponent(index: number) {
+    return <Component index={index} />;
+  };
 };
 
 const baseSingleRowVirtuosoProps = (message: string, className: string) =>

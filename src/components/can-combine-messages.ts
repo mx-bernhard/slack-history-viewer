@@ -1,4 +1,4 @@
-import { SlackMessage } from '../types';
+import type { SlackMessage } from '../types.js';
 
 export const canCombineMessages = (
   message1: SlackMessage,

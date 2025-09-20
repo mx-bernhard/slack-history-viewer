@@ -13,23 +13,8 @@ import {
   commitIndex,
   search,
 } from './solr-api.js';
-import { checkAndUpdateMessageIndex as checkAndUpdateMessageIndex } from './check-and-update-index.js';
-
-export interface SearchResultDocument {
-  id: string;
-  chatId: string;
-  ts: string;
-  tsDt: string;
-  messageIndex: number;
-  threadTsDt: string | null;
-  threadTs: string | null;
-  userDisplayName: string | null;
-  userName: string;
-  userRealName: string;
-  userId: string;
-  text: string;
-  highlightPhrases: string[];
-}
+import { checkAndUpdateMessageIndex } from './check-and-update-index.js';
+import type { SearchResultDocument } from '../types.js';
 
 const HL_PRE_MARKER = '@@SLACK_HL_START@@';
 const HL_POST_MARKER = '@@SLACK_HL_END@@';
@@ -64,10 +49,10 @@ export async function buildSearchIndex(): Promise<void> {
   console.log('Starting Solr indexing process...');
   const startTime = Date.now();
 
-  let totalMessagesAttempted: number = 0;
-  let totalMessagesSuccessfullyIndexed: number = 0;
-  let buildHadErrors: boolean = false;
-  const batchSize: number = 1000;
+  let totalMessagesAttempted = 0;
+  let totalMessagesSuccessfullyIndexed = 0;
+  let buildHadErrors = false;
+  const batchSize = 1000;
   const { submitBatch, getDocumentsBatch } = (() => {
     let documentsBatch: SolrDoc[] = [];
     return {

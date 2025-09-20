@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/tsconfig.app.tsbuildinfo",
     "incremental": true,
     "composite": true,
     "target": "ES2020",
@@ -23,5 +24,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "@types", "scripts/emojis-raw.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "@types", "scripts/emojis-raw.ts"],
+  "exclude": ["src/server/*.ts", "src/entry-server.tsx"]
 }

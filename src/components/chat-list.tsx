@@ -1,9 +1,10 @@
 import { useLocalStorage } from '@uidotdev/usehooks';
-import { useChatsQuery } from '../api/use-queries';
-import { useStore } from '../store';
-import { ChatInfo } from '../types';
-import { useUsers } from '../contexts/user-context';
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useChatsQuery } from '../api/use-queries.js';
+import { useStore } from '../store.js';
+import type { ChatInfo } from '../types.js';
+import { useUsers } from '../contexts/user-context.js';
+import type { ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
 import { entries, groupBy, isArray, uniq, values } from 'lodash-es';
 

@@ -1,7 +1,7 @@
-import { useUsers } from '../../contexts/user-context';
-import { SlackReaction } from '../../types';
+import { useUsers } from '../../contexts/user-context.js';
+import type { SlackReaction } from '../../types.js';
 
-import { emojiImageMap } from '../emoji-map';
+import { emojiImageMap } from '../emoji-map.js';
 
 export const ReactionRenderer = ({ reaction }: { reaction: SlackReaction }) => {
   const { getUserById } = useUsers();

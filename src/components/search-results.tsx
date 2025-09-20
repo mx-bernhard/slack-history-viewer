@@ -1,9 +1,9 @@
-import { useChatsQuery } from '../api/use-queries';
-import { useEmoji } from '../contexts/emoji-context';
-import { useUsers } from '../contexts/user-context';
-import { useStore } from '../store';
-import { parseSlackMessage } from '../utils/message-parser';
-import { toDate } from '../utils/to-date';
+import { useChatsQuery } from '../api/use-queries.js';
+import { useEmoji } from '../contexts/emoji-context.js';
+import { useUsers } from '../contexts/user-context.js';
+import { useStore } from '../store.js';
+import { parseSlackMessage } from '../utils/message-parser.js';
+import { toDate } from '../utils/to-date.js';
 
 const formatTimestamp = (timestamp: string): string => {
   try {

@@ -1,4 +1,4 @@
-import { SolrQueryResponse, SolrSearchArgs } from './search-indexer.js';
+import type { SolrQueryResponse, SolrSearchArgs } from './search-indexer.js';
 
 export const createSolrSearchArgs = (args: SolrSearchArgs) => {
   return Object.entries(args)

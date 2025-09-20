@@ -1,6 +1,7 @@
 import compression from 'compression';
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import express from 'express';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { identity, sortBy, uniq } from 'lodash-es';
@@ -16,10 +17,10 @@ import {
   initDataLoader,
   loadUsers,
 } from './src/server/data-loader.js';
+import type { SolrQueryResponse } from './src/server/search-indexer.js';
 import {
   buildSearchIndex,
   searchMessages,
-  SolrQueryResponse,
 } from './src/server/search-indexer.js';
 import { search } from './src/server/solr-api.js';
 
@@ -266,9 +267,7 @@ async function createServer() {
       const url = req.originalUrl;
       if (
         url.startsWith('/api') ||
-        url.match(
-          /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/
-        )
+        /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/.exec(url)
       ) {
         next();
         return;
@@ -307,9 +306,7 @@ async function createServer() {
       const url = req.originalUrl;
       if (
         url.startsWith('/api') ||
-        url.match(
-          /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/
-        )
+        /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/.exec(url)
       ) {
         next();
         return;
@@ -331,7 +328,7 @@ async function createServer() {
 
         const serverEntryPath = path.resolve(
           projectRoot,
-          'server/entry-server.js'
+          'server/entry-server.ts'
         );
         try {
           const ssrModule = (await import(

@@ -1,4 +1,4 @@
-import { useStore } from '../store';
+import { useStore } from '../store.js';
 
 const emptyStringArray: string[] = [];
 

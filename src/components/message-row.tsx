@@ -1,18 +1,19 @@
 import classNames from 'classnames';
-import { CSSProperties, useCallback, useMemo } from 'react';
+import type { CSSProperties } from 'react';
+import { useCallback, useMemo } from 'react';
 import { isNotUndefined } from 'typed-assert';
-import { useEmoji } from '../contexts/emoji-context';
-import { useUsers } from '../contexts/user-context';
-import { useStore } from '../store';
-import { SlackMessage } from '../types.js';
-import { isNotEmpty } from '../utils/is-not-empty';
-import { parseSlackMessage } from '../utils/message-parser';
+import { useEmoji } from '../contexts/emoji-context.js';
+import { useUsers } from '../contexts/user-context.js';
+import { useStore } from '../store.js';
+import type { SlackMessage } from '../types.js';
+import { isNotEmpty } from '../utils/is-not-empty.js';
+import { parseSlackMessage } from '../utils/message-parser.js';
 import { toDate } from '../utils/to-date.js';
-import { FilesRenderer } from './file-renderer';
-import { getHighlighted } from './get-highlighted';
-import { AttachmentRenderer } from './message-attachments/attachment-renderer';
-import { BlockRenderer } from './message-blocks/block-renderer';
-import { ReactionsList } from './message-reactions/reactions-list';
+import { FilesRenderer } from './file-renderer.js';
+import { getHighlighted } from './get-highlighted.js';
+import { AttachmentRenderer } from './message-attachments/attachment-renderer.js';
+import { BlockRenderer } from './message-blocks/block-renderer.js';
+import { ReactionsList } from './message-reactions/reactions-list.js';
 import { useHighlightPhrases } from './use-highlight-phrases.js';
 
 const userLocale = navigator.language;
@@ -88,7 +89,7 @@ export const MessageRow = ({
     user?.profile.real_name,
     user?.id,
     'Unknown User',
-  ].filter(name => name != null && name.trim().length > 0)[0];
+  ].find(name => name != null && name.trim().length > 0);
   isNotUndefined(displayName);
 
   const avatarUrl = user?.profile.image_72;

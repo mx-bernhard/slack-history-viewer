@@ -1,11 +1,11 @@
 import './App.css';
-import ChatList from './components/chat-list';
-import { ErrorBoundary } from './components/error-boundary';
-import { MessageView } from './components/message-view';
-import { SearchInput } from './components/search-input';
-import SearchResults from './components/search-results';
-import { useIsClient } from './components/use-is-client';
-import { StoreProvider, useStore } from './store';
+import ChatList from './components/chat-list.js';
+import { ErrorBoundary } from './components/error-boundary.js';
+import { MessageView } from './components/message-view.js';
+import { SearchInput } from './components/search-input.js';
+import SearchResults from './components/search-results.js';
+import { useIsClient } from './components/use-is-client.js';
+import { StoreProvider, useStore } from './store.js';
 
 export const App = () => {
   const isClient = useIsClient();

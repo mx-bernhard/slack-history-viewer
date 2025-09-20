@@ -1,4 +1,4 @@
-import { SlackMessage } from '../types';
+import type { SlackMessage } from '../types';
 import { isNotEmptyString } from '../utils/is-not-empty';
 
 export const estimateMessageHeight = (

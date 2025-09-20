@@ -1,27 +1,32 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/tsconfig.node.tsbuildinfo",
     "skipLibCheck": true,
+    "lib": ["DOM", "ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
-    "strict": true,
     "rootDir": ".",
     "outDir": "dist/server",
     "resolveJsonModule": true,
     "noEmit": false,
     "allowImportingTsExtensions": false,
-    /* Linting */
+    "jsx": "react-jsx",
+
+    "isolatedModules": true,
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
   "include": [
     "vite.config.ts",
+    "src/entry-server.tsx",
     "server.tsx",
-    "src/server",
+    "src/server/**/*.ts",
+    "src/server/**/*.tsx",
     "src/types.ts",
-    "src/types/flexsearch-extensions.d.ts",
     "@types"
   ],
   "exclude": ["node_modules", "dist/client"]

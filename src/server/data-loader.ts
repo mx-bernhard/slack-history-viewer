@@ -4,9 +4,10 @@ import { groupBy, isEqual, sortBy } from 'lodash-es';
 import * as memoizePkg from 'micro-memoize';
 import { limitFunction } from 'p-limit';
 import path from 'path';
-import { Database, open } from 'sqlite';
+import type { Database } from 'sqlite';
+import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
-import {
+import type {
   ChatInfo,
   SlackChannel,
   SlackDM,

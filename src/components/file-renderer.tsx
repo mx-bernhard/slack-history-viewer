@@ -1,5 +1,5 @@
-import { CSSProperties, SyntheticEvent } from 'react';
-import { SlackFile } from '../types';
+import type { CSSProperties, SyntheticEvent } from 'react';
+import type { SlackFile } from '../types.js';
 
 const isImage = (mimetype: string): boolean => {
   return [

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { VirtuosoHandle } from 'react-virtuoso';
+import type { VirtuosoHandle } from 'react-virtuoso';
 
 /**
  * Virtuoso does not like callback refs and react quits with infinite loop error. Hence we create a

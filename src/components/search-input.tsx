@@ -1,6 +1,7 @@
-import { ChangeEvent, useCallback } from 'react';
-import { SearchResultDocument } from '../server/search-indexer';
-import { useStore } from '../store';
+import type { ChangeEvent } from 'react';
+import { useCallback } from 'react';
+import { useStore } from '../store.js';
+import type { SearchResultDocument } from '../types.js';
 
 const constantArray: SearchResultDocument[] = [];
 

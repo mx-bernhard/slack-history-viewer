@@ -1,5 +1,9 @@
-import { SlackMessage, ChatInfo, SlackUser } from '../types';
-import { SearchResultDocument } from '../server/search-indexer';
+import type {
+  SlackMessage,
+  ChatInfo,
+  SlackUser,
+  SearchResultDocument,
+} from '../types.js';
 
 export interface EmojiData {
   emoji: string;

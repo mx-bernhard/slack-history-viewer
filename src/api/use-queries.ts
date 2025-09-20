@@ -1,6 +1,7 @@
-import { QueryClient, skipToken, useQuery } from '@tanstack/react-query';
-import { apiClient } from './api-client';
-import { canCombineMessages } from '../components/can-combine-messages';
+import type { QueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
+import { apiClient } from './api-client.js';
+import { canCombineMessages } from '../components/can-combine-messages.js';
 
 export const useChatsQuery = () => {
   return useQuery({

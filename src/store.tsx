@@ -1,18 +1,16 @@
-import { QueryClient, useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import pDebounce from 'p-debounce';
-import { createContext, ReactNode, useContext, useRef, useState } from 'react';
-import {
-  create,
-  StoreApi,
-  UseBoundStore,
-  useStore as useZustandStore,
-} from 'zustand';
+import type { ReactNode } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
+import type { StoreApi, UseBoundStore } from 'zustand';
+import { create, useStore as useZustandStore } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
-import { createSearchQuery } from './api/use-queries';
-import { useIsClient } from './components/use-is-client';
-import { SearchResultDocument } from './server/search-indexer';
-import { apiClient } from './api/api-client';
+import { createSearchQuery } from './api/use-queries.js';
+import { useIsClient } from './components/use-is-client.js';
+import { apiClient } from './api/api-client.js';
 import { isEqual } from 'lodash-es';
+import type { SearchResultDocument } from './types.js';
 
 export interface SlackHistoryViewerStore {
   searchQueryInput: string;

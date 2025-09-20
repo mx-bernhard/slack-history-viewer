@@ -127,7 +127,7 @@ export const checkAndUpdateMessageIndex = async (chatId: string) => {
   const fileToProcess = sortBy(
     files.map(file => {
       return {
-        day: path.parse(file).name.match('[0-9]{4}-[0-9]{2}-[0-9]{2}')?.[0],
+        day: /[0-9]{4}-[0-9]{2}-[0-9]{2}/.exec(path.parse(file).name)?.[0],
         file,
       };
     }),

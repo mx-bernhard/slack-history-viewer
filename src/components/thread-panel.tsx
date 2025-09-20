@@ -1,9 +1,10 @@
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { useThreadQuery } from '../api/use-queries';
-import { useStore } from '../store';
-import { SlackMessage } from '../types';
-import { MessageRow } from './message-row';
-import { canCombineMessages } from './can-combine-messages';
+import type { FC } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useThreadQuery } from '../api/use-queries.js';
+import { useStore } from '../store.js';
+import type { SlackMessage } from '../types.js';
+import { MessageRow } from './message-row.js';
+import { canCombineMessages } from './can-combine-messages.js';
 
 export const ThreadPanel: FC = () => {
   const {

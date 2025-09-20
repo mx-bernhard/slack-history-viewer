@@ -295,6 +295,14 @@ export interface SearchResultDocument {
   id: string;
   chatId: string;
   ts: string;
+  tsDt: string;
+  messageIndex: number;
+  threadTsDt: string | null;
+  threadTs: string | null;
+  userDisplayName: string | null;
+  userName: string;
+  userRealName: string;
+  userId: string;
   text: string;
-  user: string;
+  highlightPhrases: string[];
 }

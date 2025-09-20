@@ -3,7 +3,7 @@
   "compilerOptions": {
     "incremental": true,
     "composite": true,
-    "tsBuildInfoFile": "./node_modules/.cache/tsc/tsconfig.node.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/tsconfig.scripts.tsbuildinfo",
     "skipLibCheck": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -16,6 +16,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["scripts/*", "scripts/emojis-raw.ts"],
+  "include": ["scripts/*", "scripts/emojis-raw.ts", "eslint.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
