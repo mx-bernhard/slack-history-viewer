@@ -1,30 +1,24 @@
-import { useStore } from '../store.js';
+import { useStore } from '../store';
 
 const emptyStringArray: string[] = [];
 
 export const useHighlightPhrases = (messageTs: string) => {
-  return useStore(({ currentResultIndex, searchResults }) => {
-    if (!(searchResults instanceof Array)) {
-      return { highlightPhrases: emptyStringArray, mode: 'none' as const };
-    }
-    const searchResultIndex =
-      currentResultIndex !== -1
-        ? searchResults.findIndex(sr => sr.ts === messageTs)
-        : -1;
-    const highlightPhrases =
-      searchResultIndex !== -1
-        ? (searchResults[searchResultIndex]?.highlightPhrases ??
-          emptyStringArray)
-        : emptyStringArray;
+  const { searchResult, isAnySearchResult } = useStore(
+    ({ searchResults, actions: { getCurrentSearchResult } }) => ({
+      searchResult: getCurrentSearchResult(),
+      isAnySearchResult: searchResults.some(sr => sr.ts === messageTs),
+      searchResults,
+    })
+  );
 
-    return {
-      highlightPhrases,
-      mode:
-        searchResultIndex === currentResultIndex && currentResultIndex !== -1
-          ? ('current' as const)
-          : searchResultIndex !== -1
-            ? ('any' as const)
-            : ('none' as const),
-    };
-  });
+  if (searchResult == null || !isAnySearchResult) {
+    return { highlightPhrases: emptyStringArray, mode: 'none' as const };
+  }
+  const highlightPhrases = searchResult.highlightPhrases;
+
+  return {
+    highlightPhrases,
+    mode:
+      messageTs === searchResult.ts ? ('current' as const) : ('any' as const),
+  };
 };

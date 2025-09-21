@@ -7,3 +7,4 @@ public
 *.min.js
 *.d.ts 
 src/components/emoji-map.ts
+src/routeTree.gen.ts

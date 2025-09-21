@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import { createContext, useCallback, useContext } from 'react';
-import { emojiImageMap } from '../components/emoji-map.js';
+import { emojiImageMap } from '../components/emoji-map';
 
 interface EmojiContextType {
   parseEmoji: (text: string) => string;

@@ -16,9 +16,16 @@ import type {
   SlackMPIM,
   SlackUser,
 } from '../types.js';
+import type { Memoized, Options } from 'micro-memoize';
 
-const memoize =
-  memoizePkg.default as unknown as typeof memoizePkg.default.default;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyFn = (...args: any[]) => any;
+type MemoizeFn = <Fn extends AnyFn>(
+  fn: Fn | Memoized<Fn>,
+  options?: Options<Fn>
+) => Memoized<Fn>;
+
+const memoize = memoizePkg.default as unknown as MemoizeFn;
 
 let internalDataBasePath: string | null = null;
 
@@ -443,36 +450,9 @@ async function getMessagesForChatUncached(
 }
 
 export const getMessagesForChat = memoize(getMessagesForChatUncached, {
-  isMatchingKey: (key1, key2) => isEqual(key1, key2),
+  isMatchingKey: (key1: unknown, key2: unknown) => isEqual(key1, key2),
   maxSize: 100,
 });
-
-/**
- *       const threadTsToIndex = new Map<string, number>();
-      allMessages
-        .filter(
-          msg =>
-            msg.message.thread_ts == null ||
-            msg.message.thread_ts === msg.message.ts
-        )
-        .forEach((msg, index) => {
-          msg.message.message_index_l = index;
-          if (msg.message.thread_ts != null) {
-            threadTsToIndex.set(msg.message.thread_ts, index);
-          }
-        });
-      allMessages.forEach(msg => {
-        if (
-          msg.message.message_index_l == null &&
-          msg.message.thread_ts != null
-        ) {
-          msg.message.message_index_l = threadTsToIndex.get(
-            msg.message.thread_ts
-          );
-        }
-      });
-
- */
 
 export async function isFileProcessed(filePath: string): Promise<boolean> {
   const db = getDb();

@@ -1,7 +1,9 @@
 import type { FC } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
-import type { SlackAttachment } from '../../types.js';
-import { BlockRenderer } from '../message-blocks/block-renderer.js';
+import type { SlackAttachment } from '../../types';
+import { BlockRenderer } from '../message-blocks/block-renderer';
+
+import './attachment-renderer.css';
 
 interface AttachmentRendererProps {
   attachments: SlackAttachment[];

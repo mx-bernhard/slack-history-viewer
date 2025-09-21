@@ -1,60 +1,58 @@
-import type { FC } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useThreadQuery } from '../api/use-queries.js';
-import { useStore } from '../store.js';
-import type { SlackMessage } from '../types.js';
-import { MessageRow } from './message-row.js';
-import { canCombineMessages } from './can-combine-messages.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useThreadQuery } from '../api/use-queries';
+import type { SlackMessage } from '../types';
+import { canCombineMessages } from './can-combine-messages';
+import { MessageRow } from './message-row';
+import { getCurrentSearchResultMessageKind } from './search-result-kind';
+import { useStore } from '../store';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { logCatch } from '../utils/log-catch';
 
-export const ThreadPanel: FC = () => {
-  const {
-    setSelectedThreadTs,
-    selectedChatId,
-    selectedThreadTs,
-    threadMessageIndex,
-    isCurrentSearchResult,
-  } = useStore(
-    ({
-      selectedThreadTs,
-      selectedChatId,
-      threadMessageIndex,
-      actions: {
-        setSelectedThreadTs,
-        getCurrentSearchResultMessageKind: isCurrentSearchResult,
-      },
-    }) => {
-      return {
-        selectedChatId,
-        selectedThreadTs,
-        threadMessageIndex,
-        setSelectedThreadTs,
-        isCurrentSearchResult,
-      };
-    }
-  );
+import './thread-panel.css';
+
+export const ThreadPanel = ({
+  chatId,
+  threadTs,
+}: {
+  chatId?: string;
+  threadTs?: string;
+}) => {
   const {
     data: messages,
     isLoading,
     error,
   } = useThreadQuery(
-    selectedThreadTs != null
+    threadTs != null
       ? {
-          chatId: selectedChatId,
-          threadTs: selectedThreadTs,
+          chatId: chatId ?? null,
+          threadTs,
         }
       : null
   );
 
-  const onClose = useCallback(() => {
-    setSelectedThreadTs(null);
-  }, [setSelectedThreadTs]);
+  const { scrollToThreadMessageIndex, searchResultIndex, searchResults } =
+    useStore(
+      ({
+        actions: { getCurrentSearchResult },
+        searchResults,
+        searchResultIndex,
+      }) => {
+        return {
+          searchResults,
+          searchResultIndex: searchResultIndex ?? null,
+          scrollToThreadMessageIndex:
+            messages?.findIndex(m => m.ts === getCurrentSearchResult()?.ts) ??
+            null,
+        };
+      }
+    );
 
   const threadMessages = useMemo(() => {
     if (messages == null) {
       return [];
     }
 
-    const parentMessage = messages.find(msg => msg.ts === selectedThreadTs);
+    const parentMessage = messages.find(msg => msg.ts === threadTs);
 
     if (parentMessage == null) {
       return [];
@@ -73,7 +71,7 @@ export const ThreadPanel: FC = () => {
       replyMessages.sort((a, b) => parseFloat(a.ts) - parseFloat(b.ts));
     } else {
       const replies = messages.filter(
-        msg => msg.thread_ts === selectedThreadTs && msg.ts !== selectedThreadTs
+        msg => msg.thread_ts === threadTs && msg.ts !== threadTs
       );
 
       replyMessages.push(
@@ -81,12 +79,13 @@ export const ThreadPanel: FC = () => {
       );
     }
     return [parentMessage, ...replyMessages];
-  }, [selectedThreadTs, messages]);
+  }, [threadTs, messages]);
 
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (
-      threadMessageIndex !== null &&
+      scrollToThreadMessageIndex != null &&
       scroller != null &&
       threadMessages.length > 0
     ) {
@@ -99,13 +98,26 @@ export const ThreadPanel: FC = () => {
         }
       }, 50);
     }
-  }, [scroller, threadMessageIndex, threadMessages.length]);
+  }, [scrollToThreadMessageIndex, scroller, threadMessages.length]);
+
+  const navigate = useNavigate();
+  const currentSearch = useSearch({ strict: false });
+
+  if (chatId == null) return <></>;
 
   return (
     <div className="thread-panel">
       <div className="thread-panel-header">
-        <h3>Thread</h3>
-        <button className="thread-close-button" onClick={onClose}>
+        <h5>Thread</h5>
+        <button
+          className="thread-close-button"
+          onClick={() => {
+            navigate({
+              to: '.',
+              search: { ...currentSearch, threadTs: undefined },
+            }).catch(logCatch);
+          }}
+        >
           ✕
         </button>
       </div>
@@ -128,15 +140,20 @@ export const ThreadPanel: FC = () => {
               nextMessage != null && !canCombineMessages(nextMessage, message);
             return (
               <MessageRow
+                threadPanel
+                chatId={chatId}
                 key={message.ts}
                 message={message}
                 startOfCombinedMessageBlock={startOfCombinedMessageBlock}
                 endOfCombinedMessageBlock={endOfCombinedMessageBlock}
-                currentSearchResultMessageKind={
-                  selectedChatId != null
-                    ? isCurrentSearchResult(selectedChatId, message.ts)
-                    : 'none'
-                }
+                currentSearchResultMessageKind={getCurrentSearchResultMessageKind(
+                  {
+                    chatId,
+                    messageTs: message.ts,
+                    searchResults,
+                    searchResultIndex,
+                  }
+                )}
               />
             );
           })

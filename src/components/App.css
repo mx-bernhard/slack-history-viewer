@@ -1,0 +1,43 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.6rem;
+}
+
+.icon {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.icon-image {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0.25rem;
+}
+
+.icon:hover {
+  background-color: #3a3f4a;
+  border-radius: 4px;
+}
+
+.main-content {
+  display: flex;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-container {
+    background-color: #1a1d21;
+    color: #e0e0e0;
+  }
+}

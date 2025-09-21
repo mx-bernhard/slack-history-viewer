@@ -1,0 +1,163 @@
+.c-message_kit__background--hovered {
+  background: rgba(34, 37, 41, 1);
+}
+
+.message-row-start.message-row {
+  padding-top: 8px;
+}
+
+.message-row:not(.message-row-start) {
+  padding-top: 4px;
+}
+
+.highlighted-current-search-result-message {
+  background-color: rgba(255, 238, 0, 0.1);
+}
+
+.highlighted-current-search-result-thread-starter {
+  background-color: rgba(0, 132, 255, 0.1);
+}
+
+.highlighted-any-search-result-message {
+  background-color: rgba(255, 249, 167, 0.1);
+}
+
+.message-row {
+  padding: 0px 15px;
+  display: flex;
+  align-items: flex-start;
+  &:hover {
+    background-color: #222;
+  }
+  &:hover.highlighted-current-search-result-message {
+    background-color: rgba(255, 238, 0, 0.2);
+  }
+  &:hover.highlighted-current-search-result-thread-starter {
+    background-color: rgba(0, 132, 255, 0.2);
+  }
+}
+
+.message-row-end {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  margin-right: 10px;
+  background-color: #4a515e;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  text-align: center;
+  line-height: 36px;
+  font-size: 0.7em;
+  color: #ccc;
+}
+
+.message-row:hover .message-clock {
+  color: rgba(171, 171, 173, 1);
+}
+
+.message-clock {
+  width: 36px;
+  border-radius: 4px;
+  margin-top: 4px;
+  margin-right: 10px;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: transparent;
+}
+
+.message-content {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  row-gap: 0.25rem;
+  padding-bottom: 0.25rem;
+  line-height: 1.375;
+}
+
+.message-content-end {
+  padding-bottom: 0.5rem;
+}
+
+.message-row-content {
+  display: flex;
+  overflow: hidden;
+}
+
+.message-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.message-user-name {
+  font-weight: bold;
+  margin-right: 8px;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.message-timestamp {
+  font-size: 0.8em;
+  color: #888888;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.message-text {
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: normal;
+  width: 100%;
+}
+
+.loading-indicator,
+.error-message,
+.empty-message,
+.no-chat-selected {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+}
+
+.thread-indicator {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  color: #1264a3;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.thread-indicator:hover {
+  text-decoration: underline;
+}
+
+.thread-icon {
+  margin-right: 6px;
+  font-size: 1.1em;
+}
+
+.thread-indicator-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .thread-indicator {
+    color: #36c5f0;
+  }
+}

@@ -1,5 +1,5 @@
 import type { CSSProperties, SyntheticEvent } from 'react';
-import type { SlackFile } from '../types.js';
+import type { SlackFile } from '../types';
 
 const isImage = (mimetype: string): boolean => {
   return [
@@ -107,7 +107,7 @@ export const FilesRenderer = ({
   }
 
   return (
-    <div className="files-container" style={{ marginTop: '8px' }}>
+    <div className="files-container">
       {files.map(file => (
         <FileRenderer
           key={file.id}

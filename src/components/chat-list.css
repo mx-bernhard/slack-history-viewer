@@ -1,0 +1,85 @@
+.chat-list-container {
+  flex-grow: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.chat-list-container h2 {
+  position: sticky;
+  top: 0;
+  background-color: #2c313a;
+  z-index: 1;
+  margin: 0;
+}
+
+.chat-list-container-header {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.chat-list-ul {
+  list-style: none;
+  padding: 5px;
+  margin: 0;
+}
+
+.chat-list-item {
+  display: flex;
+  align-items: center;
+  padding: 0px 0px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  transition: background-color 0.15s ease-in-out;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.chat-list-item-link {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 6px 10px;
+  flex-shrink: 1; /* Allows the text to shrink */
+  overflow: hidden; /* Hides overflowing text */
+  text-overflow: ellipsis; /* Displays an ellipsis for truncated text */
+  white-space: nowrap; /* Keeps text on a single line */
+}
+
+.chat-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+.chat-name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-name span {
+  font-size: 0.85em;
+  color: #aaaaaa;
+  margin-left: 4px;
+}
+
+.chat-list-item:hover {
+  background-color: #3a3f4a;
+}
+
+.chat-list-item.selected {
+  background-color: #4a515e;
+  color: #ffffff;
+}

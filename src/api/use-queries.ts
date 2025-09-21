@@ -1,7 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { apiClient } from './api-client.js';
-import { canCombineMessages } from '../components/can-combine-messages.js';
+import { apiClient } from './api-client';
+import { canCombineMessages } from '../components/can-combine-messages';
+import { queryClient } from './query-client';
 
 export const useChatsQuery = () => {
   return useQuery({
@@ -162,7 +163,7 @@ export const useChatInfoQuery = (chatId: string | null) => {
   });
 };
 
-export const createSearchQuery =
+const createSearchQuery =
   (queryClient: QueryClient) => (query: string, limit: number) =>
     queryClient.fetchQuery({
       queryKey: ['search', query, limit],
@@ -171,3 +172,5 @@ export const createSearchQuery =
         return apiClient.searchMessages(query, limit);
       },
     });
+
+export const searchQuery = createSearchQuery(queryClient);

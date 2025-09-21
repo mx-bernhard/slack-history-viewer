@@ -1,39 +1,53 @@
 import type { FC } from 'react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { VirtuosoProps } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
-import { useChatInfoQuery, useMessageQuery } from '../api/use-queries.js';
-import { useStore } from '../store.js';
-import { MessageRow } from './message-row.js';
-import { MessageRowSkeleton } from './message-row-skeleton.js';
-import { ThreadPanel } from './thread-panel.js';
-import { useSpecialVirtuosoRef } from './use-special-virtuoso-ref.js';
+import {
+  useChatInfoQuery,
+  useChatsQuery,
+  useMessageQuery,
+} from '../api/use-queries';
+import { useStore } from '../store';
+import { MessageRow } from './message-row';
+import { MessageRowSkeleton } from './message-row-skeleton';
+import { ThreadPanel } from './thread-panel';
+import { useSpecialVirtuosoRef } from './use-special-virtuoso-ref';
 
-const createRowComponent = ({
-  handleThreadClick,
-}: {
-  handleThreadClick: (threadTs?: string) => void;
-}) => {
+import { useUsers } from '../contexts/user-context';
+import { getAvatarAndTitle } from './get-avatar-and-title';
+import './message-view.css';
+
+const createRowComponent = ({ chatId }: { chatId: string }) => {
   const Component: FC<{ index: number }> = ({ index }: { index: number }) => {
-    const selectedChatId = useStore(st => st.selectedChatId);
     const { isLoading, data } = useMessageQuery({
-      chatId: selectedChatId,
+      chatId,
       messageIndex: index,
     });
-    const message = data?.message;
-    const currentSearchResultMessageKind = useStore(
-      ({ selectedChatId, actions: { getCurrentSearchResultMessageKind } }) =>
-        selectedChatId != null && message != null
-          ? getCurrentSearchResultMessageKind(selectedChatId, message.ts)
-          : 'none'
+    const { searchResult } = useStore(
+      ({ actions: { getCurrentSearchResult } }) => ({
+        searchResult: getCurrentSearchResult(),
+      })
     );
+    const message = data?.message;
+    const currentSearchResultMessageKind = useMemo(() => {
+      if (searchResult == null || searchResult.chatId != chatId) {
+        return 'none';
+      }
+      return searchResult.ts === data?.message?.ts
+        ? 'message'
+        : searchResult.threadTs === data?.message?.ts
+          ? 'thread-starter'
+          : 'none';
+    }, [data?.message?.ts, searchResult]);
+
     if (isLoading || message == null) {
       return <MessageRowSkeleton />;
     }
     return (
       <MessageRow
+        threadPanel={false}
+        chatId={chatId}
         message={message}
-        onThreadClick={handleThreadClick}
         currentSearchResultMessageKind={currentSearchResultMessageKind}
         startOfCombinedMessageBlock={
           data?.startOfCombinedMessagesBlock === true
@@ -63,48 +77,25 @@ const noChatSelectedVirtuosoProps = {
   ...baseSingleRowVirtuosoProps('No chat selected', 'no-chat-selected'),
 } satisfies Partial<VirtuosoProps<string, object>>;
 
-export const MessageView = () => {
-  const {
-    selectedChatId,
-    selectedThreadTs,
-    messageIndex,
-    setSelectedThreadTs,
-  } = useStore(
-    ({
-      actions: { setSelectedThreadTs },
-      selectedChatId,
-      currentResultIndex,
-      selectedThreadTs,
-      messageIndex,
-    }) => {
-      return {
-        selectedChatId,
-        currentResultIndex,
-        selectedThreadTs,
-        messageIndex,
-        setSelectedThreadTs,
-      };
-    }
-  );
-
-  const { data: countInfo } = useChatInfoQuery(selectedChatId);
-
-  const handleThreadClick = useCallback(
-    (threadTs?: string) => {
-      if (selectedThreadTs == threadTs) {
-        setSelectedThreadTs(null);
-      } else {
-        setSelectedThreadTs(threadTs ?? null);
-      }
-    },
-    [selectedThreadTs, setSelectedThreadTs]
-  );
+export const MessageView = ({
+  chatId,
+  threadTs,
+  scrollToMessageIndex: scrollToMessageIndexProp,
+}: {
+  chatId: string | null;
+  threadTs: string | null;
+  scrollToMessageIndex: number | null;
+}) => {
+  const { data: countInfo } = useChatInfoQuery(chatId ?? null);
+  const { data: chats } = useChatsQuery();
+  const chatInfo = chats?.find(chat => chat.id === chatId);
   const { virtuosoAvailable, virtuosoRef } = useSpecialVirtuosoRef();
-  const canScrollToItem = selectedChatId != null && virtuosoAvailable;
+  const canScrollToItem = chatId != null && virtuosoAvailable;
 
   useEffect(() => {
     if (canScrollToItem) {
-      const scrollToMessageIndex = messageIndex ?? (countInfo?.total ?? 1) - 1;
+      const scrollToMessageIndex =
+        scrollToMessageIndexProp ?? (countInfo?.total ?? 1) - 1;
       setTimeout(() => {
         virtuosoRef.current?.scrollToIndex({
           index: scrollToMessageIndex,
@@ -112,24 +103,25 @@ export const MessageView = () => {
         });
       }, 100);
     }
-  }, [canScrollToItem, countInfo?.total, messageIndex, virtuosoRef]);
+  }, [
+    canScrollToItem,
+    countInfo?.total,
+    scrollToMessageIndexProp,
+    virtuosoRef,
+  ]);
 
   const renderRow = useMemo(
     () =>
-      createRowComponent({
-        handleThreadClick,
-      }),
-    [handleThreadClick]
+      chatId != null
+        ? createRowComponent({
+            chatId,
+          })
+        : () => <></>,
+    [chatId]
   );
-  useEffect(() => {
-    console.log('mounted');
-    return () => {
-      console.log('unmounted');
-    };
-  }, []);
 
   const virtuosoProps = (() => {
-    if (selectedChatId == null) {
+    if (chatId == null) {
       return noChatSelectedVirtuosoProps;
     } else if (countInfo == null) {
       return loadingMessagesVirtuosoProps;
@@ -141,14 +133,22 @@ export const MessageView = () => {
       >;
     }
   })();
-
+  const { getUserById } = useUsers();
+  const { element, title } =
+    chatInfo != null
+      ? getAvatarAndTitle(chatInfo, getUserById)
+      : { element: <></>, title: '' };
   return (
     <div className="message-view-container">
+      <div className="message-view-header">
+        {element}
+        <h2>{title}</h2>
+      </div>
       <div className="message-view-inner">
         <div
           className="message-list-container"
           style={{
-            width: selectedThreadTs != null ? 'calc(100% - 350px)' : '100%',
+            width: threadTs != null ? 'calc(100% - 350px)' : '100%',
           }}
         >
           <Virtuoso
@@ -158,8 +158,10 @@ export const MessageView = () => {
             {...virtuosoProps}
           />
         </div>
+        {threadTs != null && chatId != null && (
+          <ThreadPanel chatId={chatId} threadTs={threadTs} />
+        )}
       </div>
-      {selectedThreadTs != null && selectedChatId != null && <ThreadPanel />}
     </div>
   );
 };

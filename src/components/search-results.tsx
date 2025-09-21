@@ -1,9 +1,14 @@
-import { useChatsQuery } from '../api/use-queries.js';
-import { useEmoji } from '../contexts/emoji-context.js';
-import { useUsers } from '../contexts/user-context.js';
-import { useStore } from '../store.js';
-import { parseSlackMessage } from '../utils/message-parser.js';
-import { toDate } from '../utils/to-date.js';
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import { useChatsQuery } from '../api/use-queries';
+import { useEmoji } from '../contexts/emoji-context';
+import { useUsers } from '../contexts/user-context';
+import { logCatch } from '../utils/log-catch';
+import { parseSlackMessage } from '../utils/message-parser';
+import { toDate } from '../utils/to-date';
+import type { SearchResultDocument } from '../types';
+import { internalToRouterResultIndex } from '../routes/-result-index';
+
+import './search-results.css';
 
 const formatTimestamp = (timestamp: string): string => {
   try {
@@ -14,19 +19,16 @@ const formatTimestamp = (timestamp: string): string => {
   }
 };
 
-const SearchResults = () => {
-  const {
-    actions: { setSelectedResult },
-    searchResults,
-  } = useStore(({ searchQuery, actions, searchResults }) => ({
-    searchQuery,
-    searchResults,
-    actions,
-  }));
-
+export const SearchResults = ({
+  searchResults,
+}: {
+  searchResults: Error | SearchResultDocument[] | 'loading' | null;
+}) => {
   const { getUserById } = useUsers();
   const { data: chats } = useChatsQuery();
   const { parseEmoji } = useEmoji();
+  const navigate = useNavigate();
+  const { search } = useLocation();
 
   if (searchResults === 'loading') {
     return <div style={{ padding: '10px' }}>Searching...</div>;
@@ -40,16 +42,20 @@ const SearchResults = () => {
     );
   }
   if (searchResults == null) {
-    return <div style={{ padding: '10px' }}>-</div>;
+    return (
+      <div className="search-results-no-search">
+        Start by typing in the search box above.
+      </div>
+    );
   }
 
   if (searchResults.length === 0) {
-    return <div style={{ padding: '10px' }}>No results found.</div>;
+    return <div className="search-results-no-results">No results found.</div>;
   }
 
   return (
     <div className="search-results-list">
-      {searchResults.map(result => {
+      {searchResults.map((result, resultIndex) => {
         const chat = chats?.find(chat => chat.id === result.chatId);
         const userName =
           result.userDisplayName ??
@@ -68,18 +74,19 @@ const SearchResults = () => {
             key={result.id}
             className="search-result-item"
             onClick={() => {
-              setSelectedResult(result.id);
+              navigate({
+                to: '/search',
+                search: {
+                  ...search,
+                  resultIndex: internalToRouterResultIndex(resultIndex),
+                },
+              }).catch(logCatch);
             }}
             style={{ cursor: 'pointer' }}
             title={`Go to message in chat ${result.chatId}`}
             role="button"
             tabIndex={0}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ')
-                setSelectedResult(result.id);
-            }}
           >
-            {/* Basic styling - consider moving to CSS */}
             <div
               className="search-result-header"
               style={{
@@ -111,5 +118,3 @@ const SearchResults = () => {
     </div>
   );
 };
-
-export default SearchResults;

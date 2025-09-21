@@ -267,7 +267,7 @@ async function createServer() {
       const url = req.originalUrl;
       if (
         url.startsWith('/api') ||
-        /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/.exec(url)
+        /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/.test(url)
       ) {
         next();
         return;
@@ -306,7 +306,7 @@ async function createServer() {
       const url = req.originalUrl;
       if (
         url.startsWith('/api') ||
-        /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/.exec(url)
+        /\.(js|css|json|ico|svg|png|jpg|jpeg|gif|woff|woff2|ttf|eot)$/.test(url)
       ) {
         next();
         return;
@@ -328,7 +328,7 @@ async function createServer() {
 
         const serverEntryPath = path.resolve(
           projectRoot,
-          'server/entry-server.ts'
+          'server/entry-server.js'
         );
         try {
           const ssrModule = (await import(

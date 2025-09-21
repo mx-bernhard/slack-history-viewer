@@ -1,4 +1,4 @@
-import type { SlackUser } from '../types.js';
+import type { SlackUser } from '../types';
 
 type GetUserByIdFn = (userId: string) => SlackUser | undefined;
 

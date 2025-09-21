@@ -19,14 +19,28 @@ See the full license text in the `LICENSE` file.
 
 - View messages from public channels, private channels, direct messages (DMs), and multi-person DMs
   (MPIMs).
+- Group chats by type using a tree viewer
+- Remember closed/expanded state for tree nodes
 - Browse channel list.
 - Display user information (names, avatars).
 - Render message formatting (bold, italics, code blocks, links).
 - Display message threads.
 - Show attachments (links, previews).
-- Display uploaded files (image previews, download links).
+- Display uploaded files (image in new browser tab, download links).
 - Display emoji reactions with user lists on hover.
 - Full-text search across all messages.
+- Show current search result item by highlighting the message and when possible highlight the words that were part of the search query
+- Adjust limit for search
+- Reduce list of chats on the left to the current search result
+- Allow clicking through search results within one chat
+- Go back to search result list via top toolbar button
+- Clear search result by clicking on the slack logo
+- Bookmarking of
+  - search query
+  - limit
+  - current search result item
+  - opened thread
+  - current chat when not searching
 - Efficient loading and display using virtual scrolling (`react-window`).
 - Indexed fields
   - chat_id_s: technical chat id
@@ -57,21 +71,26 @@ See the full license text in the `LICENSE` file.
 - Add more message block types:
   - forwarded message with link that navigates to the message
   - spoiler tags
+  - channel links
+  - action types (just show them since this is an archive viewer after all)
   - ...
-- show tree structure by chat types
+- fix @channel-name visuals and
 - localize all texts
 - search input history (what you have typed into the search field before)
+- improve bookmarks by adding human-readable labels along with the chat id
+- allow bookmarking of scroll position
+
 - index the shown user name instead of internal user name that was in the original json
 - index texts from attachment previews and other substructures that are allowed in one message, offer both a combined and indvidiual fields for flexibility
 - provide a better search experience:
-  - allow to go back to search results
   - show search results along actual message in a separate panel that can be toggled
   - offer various clickable search templates that are added to the search input so that learning the solr syntax is not required most of the time
   - use enter key to search again
-  - show "nothing found" page if nothing was found
-- use a router so that most of the pages can be bookmarked
 - show the workspace with the permissions of another user
 - allow multiple workspaces
+- Add screenshots to this README.md with a fake workspace that documents all features much better
+- Keyboard navigation (select search result item, navigate between search result items, focus search input)
+- Filter chat list with a small search input at the top
 
 ## Configuration
 

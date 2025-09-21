@@ -1,0 +1,31 @@
+.search-results-list {
+  overflow-y: auto;
+}
+
+.search-results-no-results {
+  margin: 2rem auto;
+}
+
+.search-result-item {
+  border-radius: 5px;
+  margin: 8px;
+  padding: 8px;
+  border: 1px solid #373737;
+  background-color: #252525;
+}
+
+.search-result-item:hover {
+  background-color: #2f2f2f;
+}
+
+.search-result-user {
+  flex: 1;
+}
+
+.search-result-time {
+  flex: 1;
+}
+.search-results-no-search {
+  margin: auto;
+  color: #666;
+}

@@ -1,0 +1,20 @@
+.sidebar {
+  flex: 0 0 280px;
+  border-right: 1px solid #3f4552;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.chat-name span.chat-list-additional-info {
+  color: unset;
+  flex-shrink: 0;
+}

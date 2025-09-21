@@ -1,5 +1,5 @@
-import type { SlackReaction } from '../../types.js';
-import { ReactionRenderer } from './reaction-renderer.js';
+import type { SlackReaction } from '../../types';
+import { ReactionRenderer } from './reaction-renderer';
 
 export const ReactionsList = ({
   reactions,

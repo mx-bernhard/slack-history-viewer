@@ -1,7 +1,7 @@
 import type { ReactNode, FC } from 'react';
 import { createContext, useContext, useMemo, useCallback } from 'react';
-import { useUsersQuery } from '../api/use-queries.js';
-import type { SlackUser } from '../types.js';
+import { useUsersQuery } from '../api/use-queries';
+import type { SlackUser } from '../types';
 
 interface UserContextType {
   users: Map<string, SlackUser>;

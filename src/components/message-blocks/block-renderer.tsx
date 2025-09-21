@@ -10,10 +10,12 @@ import type { ReactElement, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { isNever } from 'typed-assert';
-import { useEmoji } from '../../contexts/emoji-context.js';
-import { useUsers } from '../../contexts/user-context.js';
-import { getHighlighted } from '../get-highlighted.js';
-import { useHighlightPhrases } from '../use-highlight-phrases.js';
+import { useEmoji } from '../../contexts/emoji-context';
+import { useUsers } from '../../contexts/user-context';
+import { getHighlighted } from '../get-highlighted';
+import { useHighlightPhrases } from '../use-highlight-phrases';
+
+import './block-renderer.css';
 
 export const BlockRenderer = ({
   blocks,

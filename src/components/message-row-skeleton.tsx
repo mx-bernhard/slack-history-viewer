@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { Skeleton } from './skeleton.js';
+import { Skeleton } from './skeleton';
 import './message-row-skeleton.css';
 
 export const MessageRowSkeleton = () => {

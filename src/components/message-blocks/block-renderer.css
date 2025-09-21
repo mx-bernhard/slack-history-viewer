@@ -1,0 +1,116 @@
+.rich-text-section {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rich-text-quote {
+  margin: 4px 0;
+  padding: 0 0 0 12px;
+  position: relative;
+}
+
+pre {
+  border: 1px solid rgba(232, 232, 232, 0.13);
+  background: rgba(232, 232, 232, 0.04);
+  font-variant-ligatures: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: normal;
+  tab-size: 4;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.50001;
+  font-family:
+    Monaco,
+    Menlo,
+    Consolas,
+    Courier New,
+    monospace !important;
+}
+
+.rich-text-quote::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #e3e3e3;
+  border-radius: 2px;
+}
+
+code {
+  background-color: #373737;
+  border-radius: 3px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: #505050;
+  font-family: monospace;
+  padding: 0.125rem 0.25rem;
+  font-size: 0.9em;
+}
+
+.emoji {
+  font-size: 1.2em;
+  line-height: 1;
+  vertical-align: -0.1em;
+}
+
+.emoji-image {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.15em;
+  margin: 0 0.05em;
+  image-rendering: auto;
+  object-fit: contain;
+}
+
+.emoji-image-reaction {
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.15em;
+  image-rendering: auto;
+}
+
+.emoji-image-container {
+  line-height: 0;
+}
+
+.mention {
+  color: #1264a3;
+  background-color: #e8f5fa;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.unsupported-block,
+.unsupported-element,
+.unsupported-text {
+  color: #666;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+mark {
+  background-color: #fff2b3;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+strong,
+em {
+  font-weight: 600;
+}
+
+.text-hint {
+  color: #888888;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.section-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}

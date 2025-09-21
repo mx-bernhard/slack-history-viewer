@@ -1,9 +1,11 @@
 import type { SolrQueryResponse, SolrSearchArgs } from './search-indexer.js';
 
-export const createSolrSearchArgs = (args: SolrSearchArgs) => {
+export const createSolrSearchArgs = (
+  args: SolrSearchArgs
+): [string, string][] => {
   return Object.entries(args)
     .filter(([_, v]) => v != null)
-    .map(([k, v]) => [k, String(v)]);
+    .map(([k, v]) => [k, String(v)] as const);
 };
 export const solrHost = process.env.SLACK_SOLR_HOST ?? 'localhost';
 export const solrPort = process.env.SLACK_SOLR_PORT ?? '8983';

@@ -3,7 +3,7 @@ import type {
   ChatInfo,
   SlackUser,
   SearchResultDocument,
-} from '../types.js';
+} from '../types';
 
 export interface EmojiData {
   emoji: string;

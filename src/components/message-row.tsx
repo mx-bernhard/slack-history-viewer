@@ -1,20 +1,24 @@
+import Chip from '@mui/material/Chip';
+import { useSearch } from '@tanstack/react-router';
 import classNames from 'classnames';
-import type { CSSProperties } from 'react';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { isNotUndefined } from 'typed-assert';
-import { useEmoji } from '../contexts/emoji-context.js';
-import { useUsers } from '../contexts/user-context.js';
-import { useStore } from '../store.js';
-import type { SlackMessage } from '../types.js';
-import { isNotEmpty } from '../utils/is-not-empty.js';
-import { parseSlackMessage } from '../utils/message-parser.js';
-import { toDate } from '../utils/to-date.js';
-import { FilesRenderer } from './file-renderer.js';
-import { getHighlighted } from './get-highlighted.js';
-import { AttachmentRenderer } from './message-attachments/attachment-renderer.js';
-import { BlockRenderer } from './message-blocks/block-renderer.js';
-import { ReactionsList } from './message-reactions/reactions-list.js';
-import { useHighlightPhrases } from './use-highlight-phrases.js';
+import { useEmoji } from '../contexts/emoji-context';
+import { useUsers } from '../contexts/user-context';
+import type { SlackMessage } from '../types';
+import { isNotEmpty } from '../utils/is-not-empty';
+import { parseSlackMessage } from '../utils/message-parser';
+import { toDate } from '../utils/to-date';
+import { FilesRenderer } from './file-renderer';
+import { getAvatarAndTitleForUserId } from './get-avatar-and-title';
+import { getHighlighted } from './get-highlighted';
+import { Link } from './link';
+import { AttachmentRenderer } from './message-attachments/attachment-renderer';
+import { BlockRenderer } from './message-blocks/block-renderer';
+import { ReactionsList } from './message-reactions/reactions-list';
+import { useHighlightPhrases } from './use-highlight-phrases';
+
+import './message-row.css';
 
 const userLocale = navigator.language;
 
@@ -24,63 +28,68 @@ const formatTime = (ts: string) =>
   }).format(toDate(ts));
 
 export const MessageRow = ({
-  style: reactWindowStyle,
   message,
-  onThreadClick,
   startOfCombinedMessageBlock,
   endOfCombinedMessageBlock,
   currentSearchResultMessageKind,
+  chatId,
+  threadPanel,
 }: {
-  style?: CSSProperties;
   message: SlackMessage;
-  onThreadClick?: (threadTs: string) => void;
+  chatId: string;
   startOfCombinedMessageBlock: boolean;
   endOfCombinedMessageBlock: boolean;
   currentSearchResultMessageKind: 'message' | 'thread-starter' | 'none';
+  threadPanel: boolean;
 }) => {
-  const { selectedChatId } = useStore(({ selectedChatId }) => {
-    return {
-      selectedChatId,
-    };
-  });
-
   const { highlightPhrases, mode } = useHighlightPhrases(message.ts);
 
   const replyCount = message.reply_count ?? 0;
   const { getUserById } = useUsers();
   const { parseEmoji } = useEmoji();
 
-  const handleThreadClick = useCallback(() => {
-    if (!onThreadClick || !message.ts) return;
-    onThreadClick(message.ts);
-  }, [onThreadClick, message]);
-
   const replyCountText = useMemo(() => {
     if (message.replies && message.replies.length > 0) {
       const count = message.replies.length;
-      const uniqueUsers = new Set(message.replies.map(reply => reply.user))
-        .size;
+      const uniqueUsers = new Set(message.replies.map(reply => reply.user));
 
       const replyLinkText = `${String(count)} ${count === 1 ? 'reply' : 'replies'}`;
-      if (uniqueUsers === 1) {
-        return replyLinkText;
-      } else {
-        return `${replyLinkText} from ${String(uniqueUsers)} people`;
-      }
+      const avatars = [...uniqueUsers]
+        .slice(0, 3)
+        .map(
+          userId =>
+            getAvatarAndTitleForUserId(userId, 'unused', getUserById).element
+        )
+        .concat(
+          uniqueUsers.size > 3 ? (
+            <Chip label={`+${String(uniqueUsers.size - 3)}`} size="small" />
+          ) : (
+            <></>
+          )
+        );
+      return (
+        <>
+          {...avatars}
+          <div>{replyLinkText}</div>
+          <span className="text-hint" style={{ textDecoration: 'none' }}>
+            latest reply:{' '}
+            {message.replies
+              .map(reply => reply.ts)
+              .toSorted()
+              .map(ts => toDate(ts))
+              .at(-1)
+              ?.toLocaleString()}
+          </span>
+        </>
+      );
     }
 
-    if (replyCount === 0) return '';
-
-    const replyText = `${String(replyCount)} ${replyCount === 1 ? 'reply' : 'replies'}`;
-    if (message.reply_users_count === 1) {
-      return replyText;
-    } else if (message.reply_users_count != null) {
-      return `${replyText} from ${String(message.reply_users_count)} people`;
-    }
-
-    return replyText;
-  }, [message.replies, message.reply_users_count, replyCount]);
-
+    return '';
+  }, [getUserById, message.replies]);
+  const threadSearchValue = useSearch({
+    from: '__root__',
+    select: ({ threadTs }) => threadTs,
+  });
   const user = message.user != null ? getUserById(message.user) : undefined;
 
   const displayName = [
@@ -99,12 +108,11 @@ export const MessageRow = ({
   const hasAttachments = isNotEmpty(message.attachments);
   const hasFiles = isNotEmpty(message.files);
   const hasReactions = isNotEmpty(message.reactions);
-
   const hasReplies = isNotEmpty(message.replies) || replyCount > 0;
+  const search = useSearch({ strict: false });
 
   return (
     <div
-      style={reactWindowStyle}
       className={classNames('message-row', {
         'message-row-end': endOfCombinedMessageBlock,
         'message-row-start': startOfCombinedMessageBlock,
@@ -154,11 +162,8 @@ export const MessageRow = ({
               mode
             )
           )}
-          {hasFiles && selectedChatId != null && (
-            <FilesRenderer
-              files={message.files ?? []}
-              chatId={selectedChatId}
-            />
+          {hasFiles && (
+            <FilesRenderer files={message.files ?? []} chatId={chatId} />
           )}
           {hasAttachments && (
             <AttachmentRenderer
@@ -169,9 +174,20 @@ export const MessageRow = ({
           {hasReactions && (
             <ReactionsList reactions={message.reactions ?? []} />
           )}
-          {hasReplies && (
-            <div className="thread-indicator" onClick={handleThreadClick}>
-              <span className="thread-icon">💬</span> {replyCountText}
+          {hasReplies && !threadPanel && (
+            <div className="thread-indicator">
+              <Link
+                to="."
+                search={{
+                  ...search,
+                  threadTs:
+                    threadSearchValue !== message.ts ? message.ts : undefined,
+                }}
+                className="thread-indicator-link"
+                underline="none"
+              >
+                {replyCountText}
+              </Link>
             </div>
           )}
         </div>

@@ -37,3 +37,4 @@ processed_messages.db-journal
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+tsconfig.app.tsbuildinfo
