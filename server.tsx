@@ -323,7 +323,9 @@ async function createServer() {
             `[SSR-Prod] Failed to read template at ${templatePath}`,
             err
           );
-          throw new Error(`Could not read index.html template.`);
+          throw new Error(`Could not read index.html template.`, {
+            cause: err,
+          });
         }
 
         const serverEntryPath = path.resolve(
@@ -340,7 +342,9 @@ async function createServer() {
             `[SSR-Prod] Failed to import server entry at ${serverEntryPath}`,
             err
           );
-          throw new Error(`Could not import server entry point.`);
+          throw new Error(`Could not import server entry point.`, {
+            cause: err,
+          });
         }
 
         if (typeof render !== 'function')

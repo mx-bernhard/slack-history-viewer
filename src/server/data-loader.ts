@@ -74,7 +74,7 @@ export async function initDataLoader(basePath: string): Promise<void> {
   } catch (error) {
     console.error('Failed to initialize SQLite tracking database:', error);
 
-    throw new Error('SQLite DB initialization failed');
+    throw new Error('SQLite DB initialization failed', { cause: error });
   }
 }
 
