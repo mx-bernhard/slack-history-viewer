@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM node:lts-alpine3.22 AS builder
+FROM node:24.14-alpine3.23 AS builder
 WORKDIR /app
 RUN corepack enable
 COPY package.json yarn.lock .yarnrc.yml ./
@@ -21,7 +21,7 @@ RUN yarn workspaces focus --production
 
 # Stage 2: Production Runner
 # Use a slim Node.js Alpine image
-FROM node:lts-alpine3.22 AS runner
+FROM node:24.14-alpine3.23 AS runner
 
 # Enable Corepack in the runner stage as well
 # This ensures the correct yarn version is used for CMD

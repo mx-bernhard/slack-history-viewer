@@ -1,12 +1,11 @@
 import fs from 'fs/promises';
 import { glob } from 'glob';
 import { groupBy, isEqual, sortBy } from 'lodash-es';
+import type { Memoized, Options } from 'micro-memoize';
 import * as memoizePkg from 'micro-memoize';
+import { type SQLTagStore, DatabaseSync } from 'node:sqlite';
 import { limitFunction } from 'p-limit';
 import path from 'path';
-import type { Database } from 'sqlite';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
 import type {
   ChatInfo,
   SlackChannel,
@@ -16,7 +15,6 @@ import type {
   SlackMPIM,
   SlackUser,
 } from '../types.js';
-import type { Memoized, Options } from 'micro-memoize';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyFn = (...args: any[]) => any;
@@ -29,11 +27,17 @@ const memoize = memoizePkg.default as unknown as MemoizeFn;
 
 let internalDataBasePath: string | null = null;
 
-let dbInstance: Database | null = null;
+interface DbInstance {
+  db: DatabaseSync;
+  tagStore: SQLTagStore;
+}
+
+let dbInstance: DbInstance | null = null;
+
 const dbFilename: string =
   process.env.SLACK_DB_FILENAME ?? './processed_messages.db';
 
-function getDb(): Database {
+function getDb(): DbInstance {
   if (dbInstance === null) {
     throw new Error(
       'Database has not been initialized. Call initDataLoader first.'
@@ -42,7 +46,7 @@ function getDb(): Database {
   return dbInstance;
 }
 
-export async function initDataLoader(basePath: string): Promise<void> {
+export function initDataLoader(basePath: string): void {
   if (internalDataBasePath !== null || dbInstance !== null) {
     console.warn(
       'Data loader or DB already initialized. Ignoring subsequent calls.'
@@ -55,21 +59,18 @@ export async function initDataLoader(basePath: string): Promise<void> {
   );
 
   try {
-    const verboseSqlite3 = sqlite3.verbose();
+    const db = new DatabaseSync(dbFilename);
     console.log(`Initializing SQLite tracking database at: ${dbFilename}`);
-    dbInstance = await open({
-      filename: dbFilename,
-      mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-      driver: verboseSqlite3.Database,
-    });
 
-    await dbInstance.exec(`
+    db.exec(`
       CREATE TABLE IF NOT EXISTS processed_files (
         path TEXT NOT NULL,
         indexed_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
         PRIMARY KEY (path)
       )
     `);
+    dbInstance = { db, tagStore: db.createTagStore(10) };
+
     console.log('SQLite tracking database initialized successfully.');
   } catch (error) {
     console.error('Failed to initialize SQLite tracking database:', error);
@@ -357,14 +358,11 @@ export const getFiles = async (
   const allMessageFiles = await glob(globPattern);
   const messageFiles =
     mode === 'unprocessed'
-      ? (
-          await Promise.all(
-            allMessageFiles.map(
-              async messageFile =>
-                [messageFile, await isFileProcessed(messageFile)] as const
-            )
+      ? allMessageFiles
+          .map(
+            messageFile => [messageFile, isFileProcessed(messageFile)] as const
           )
-        )
+
           .filter(([_, isProcessed]) => !isProcessed)
           .map(([messageFile]) => messageFile)
       : allMessageFiles;
@@ -454,37 +452,30 @@ export const getMessagesForChat = memoize(getMessagesForChatUncached, {
   maxSize: 100,
 });
 
-export async function isFileProcessed(filePath: string): Promise<boolean> {
-  const db = getDb();
-  const result = await db.get<{ '1': number } | undefined>(
-    'SELECT 1 FROM processed_files WHERE path = ?',
-    [filePath]
-  );
+export function isFileProcessed(filePath: string): boolean {
+  const { tagStore } = getDb();
+  const result = tagStore.get`SELECT 1 FROM processed_files WHERE path = ${filePath}`;
   return result != null;
 }
 
 export const markFilesAsProcessed = (() => {
   const batchSize = 100;
 
-  const markFilesAsProcessedInDb = async (filePaths: string[]) => {
-    const db = getDb();
+  const markFilesAsProcessedInDb = (filePaths: string[]) => {
+    const { db, tagStore } = getDb();
     try {
-      await db.run('BEGIN TRANSACTION');
-
-      const stmt = await db.prepare(
-        'INSERT OR IGNORE INTO processed_files (path) VALUES (?)'
-      );
+      db.exec('BEGIN TRANSACTION');
 
       for (const filePath of filePaths) {
-        await stmt.run(filePath);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+        tagStore.run`INSERT OR IGNORE INTO processed_files (path) VALUES (${filePath})`;
       }
 
-      await stmt.finalize();
-      await db.run('COMMIT');
+      db.exec('COMMIT');
     } catch (error) {
       console.error('Error marking files as processed in SQLite:', error);
       try {
-        await db.run('ROLLBACK');
+        db.exec('ROLLBACK');
         console.log('SQLite transaction rolled back.');
       } catch (rollbackError: unknown) {
         console.error('Error rolling back SQLite transaction:', rollbackError);

@@ -143,7 +143,7 @@ Hit Ctrl+C in the terminal.
 To run the Slack Export Viewer locally for development:
 
 1. **Prerequisites:**
-   - Node.js (22.x or higher, LTS version recommended)
+   - Node.js (24.x or higher, LTS version recommended)
    - Yarn via corepack / nvm (.nvmrc included)
    - Docker (for running the Solr search engine)
    - Docker Compose (for managing the Solr service, the app or both)

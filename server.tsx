@@ -51,7 +51,7 @@ async function createServer() {
     }
     console.log(`Server using data directory: ${dataDir}`);
 
-    await initDataLoader(dataDir);
+    initDataLoader(dataDir);
   } catch (error: unknown) {
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
       console.error(`Error: Data directory not found at ${dataDir}.`);
