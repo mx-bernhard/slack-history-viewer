@@ -1,5 +1,4 @@
 import fs from 'fs/promises';
-import { glob } from 'glob';
 import { groupBy, isEqual, sortBy } from 'lodash-es';
 import type { Memoized, Options } from 'micro-memoize';
 import * as memoizePkg from 'micro-memoize';
@@ -355,7 +354,10 @@ export const getFiles = async (
       `[getMessagesForChat] Globbing for messages in: ${globPattern}`
     );
   }
-  const allMessageFiles = await glob(globPattern);
+  const allMessageFiles = [];
+  for await (const messageFile of fs.glob(globPattern)) {
+    allMessageFiles.push(messageFile);
+  }
   const messageFiles =
     mode === 'unprocessed'
       ? allMessageFiles
