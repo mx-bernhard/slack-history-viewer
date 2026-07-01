@@ -94,8 +94,7 @@ const messageCache = new Map<string, SlackMessage[]>();
 function pruneCache() {
   if (messageCache.size > MAX_CACHE_SIZE) {
     const oldestKey = messageCache.keys().next().value as unknown as
-      | string
-      | undefined;
+      string | undefined;
     if (oldestKey != null && typeof oldestKey === 'string') {
       messageCache.delete(oldestKey);
     }
@@ -320,9 +319,11 @@ export async function findChatDirectoryPath(
         return namePath;
       }
     } catch (error: unknown) {
-      if (
-        !(error instanceof Error && 'code' in error && error.code === 'ENOENT')
-      ) {
+      if (!(
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'ENOENT'
+      )) {
         console.error(
           `${logPrefix}Error checking name path ${namePath}:`,
           error
