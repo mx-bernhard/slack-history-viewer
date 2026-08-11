@@ -9,13 +9,13 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
   js.configs.recommended,
-  tseslint.configs.strictTypeChecked,
-  tseslint.configs.stylisticTypeChecked,
+  ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   reactPlugin.configs.flat.recommended!,
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   reactPlugin.configs.flat['jsx-runtime']!,
-  reactHooks.configs['recommended-latest'],
+  reactHooks.configs.flat['recommended-latest'],
   {
     languageOptions: {
       parserOptions: {

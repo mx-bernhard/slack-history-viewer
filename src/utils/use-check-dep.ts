@@ -1,3 +1,5 @@
+// debug util only
+/* eslint-disable react-hooks/refs */
 import { useRef } from 'react';
 
 export function useCheckDep(
