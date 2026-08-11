@@ -43,6 +43,7 @@ interface SolrDoc {
   thread_ts_dt: string | null;
   thread_ts_s: string | null;
   message_index_l: number;
+  attachment_ss: string[];
 }
 
 export async function buildSearchIndex(): Promise<void> {
@@ -114,6 +115,16 @@ export async function buildSearchIndex(): Promise<void> {
             user_name_s: message.user_profile?.name ?? 'Unknown',
             user_real_name_s: message.user_profile?.real_name ?? 'Unknown',
             [messageField]: message.text ?? '',
+            attachment_ss:
+              message.attachments
+                ?.flatMap(attachment => [
+                  attachment.fallback,
+                  attachment.author_name,
+                  attachment.author_subname,
+                  attachment.service_name,
+                  attachment.title,
+                ])
+                .flatMap(a => (a != null ? [a] : [])) ?? [],
             chat_type_s: chat.type,
             channel_name_s: chat.name,
             file_path_s: filePath,
