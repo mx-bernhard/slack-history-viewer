@@ -1,7 +1,7 @@
 # Stage 1: Build the application
-FROM node:24.19-alpine3.24 AS builder
+FROM node:26.13.0-alpine3.24 AS builder
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g corepack@latest && corepack enable
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn ./.yarn
 # Install ALL dependencies (dev + prod) for the build
@@ -21,11 +21,11 @@ RUN yarn workspaces focus --production
 
 # Stage 2: Production Runner
 # Use a slim Node.js Alpine image
-FROM node:24.19-alpine3.24 AS runner
+FROM node:26.13.0-alpine3.24 AS runner
 
 # Enable Corepack in the runner stage as well
 # This ensures the correct yarn version is used for CMD
-RUN corepack enable
+RUN npm install -g corepack@latest && corepack enable
 
 # Set working directory
 WORKDIR /app

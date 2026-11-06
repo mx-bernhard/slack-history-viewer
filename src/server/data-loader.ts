@@ -93,9 +93,8 @@ const messageCache = new Map<string, SlackMessage[]>();
 
 function pruneCache() {
   if (messageCache.size > MAX_CACHE_SIZE) {
-    const oldestKey = messageCache.keys().next().value as unknown as
-      string | undefined;
-    if (oldestKey != null && typeof oldestKey === 'string') {
+    const oldestKey = messageCache.keys().next().value;
+    if (oldestKey != null) {
       messageCache.delete(oldestKey);
     }
   }
@@ -208,7 +207,7 @@ export async function getAllChats(): Promise<ChatInfo[]> {
       let otherMemberIdsForAvatar: string[] = [];
 
       if (type === 'dm') {
-        if (item.members && item.members.length === 2) {
+        if (item.members?.length === 2) {
           const otherUserId = item.members.find(
             (memberId: string) => memberId !== currentUserIdForDms
           );
@@ -416,7 +415,7 @@ async function getMessagesForChatUncached(
                 allMessages.push({
                   message: slackMessage,
                   filePath: pathWithinDataBasePath,
-                } as SlackMessageInfo);
+                });
               }
             });
           } else {

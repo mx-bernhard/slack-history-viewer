@@ -30,7 +30,7 @@ const createRowComponent = ({ chatId }: { chatId: string }) => {
     );
     const message = data?.message;
     const currentSearchResultMessageKind = useMemo(() => {
-      if (searchResult == null || searchResult.chatId != chatId) {
+      if (searchResult?.chatId != chatId) {
         return 'none';
       }
       return searchResult.ts === data?.message?.ts

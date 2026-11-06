@@ -15,7 +15,7 @@ export const getCurrentSearchResultMessageKind = ({
     return 'none';
   }
   const currentSearchResult = searchResults[searchResultIndex];
-  if (currentSearchResult == null || currentSearchResult.chatId != chatId) {
+  if (currentSearchResult?.chatId != chatId) {
     return 'none';
   }
   return currentSearchResult.ts === messageTs

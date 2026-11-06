@@ -32,7 +32,7 @@
     "@tanstack/zod-adapter": "1.131.40",
     "@uidotdev/usehooks": "2.4.1",
     "classnames": "2.5.1",
-    "compression": "1.8.1",
+    "compression": "1.8.2",
     "debounce-collect": "^1.0.2",
     "dotenv": "16.5.0",
     "emoji-datasource-google": "15.1.2",
@@ -77,5 +77,12 @@
     "vite-node": "6.0.0",
     "vite-plugin-static-copy": "3.1.2"
   },
-  "packageManager": "yarn@4.9.2"
+  "packageManager": "yarn@4.9.2",
+  "resolutions": {
+    "proxy-addr": "^2.0.8",
+    "body-parser": "^2.4.0",
+    "qs": "^6.16.1",
+    "seroval": "^1.6.11",
+    "seroval-plugins": "^1.6.11"
+  }
 }
