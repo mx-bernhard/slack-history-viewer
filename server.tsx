@@ -334,7 +334,7 @@ async function createServer() {
         );
         try {
           const ssrModule = (await import(
-            pathToFileURL(serverEntryPath).toString()
+            /* @vite-ignore */ pathToFileURL(serverEntryPath).toString()
           )) as SsrModule;
           render = ssrModule.render;
         } catch (err) {

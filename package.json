@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm run dev:ssr",
-    "dev:ssr": "nodemon --watch server.tsx --watch src/server --ext ts,tsx --exec vite-node server.tsx",
+    "dev:ssr": "nodemon --watch server.tsx --watch src/server --ext ts,tsx --exec \"node --experimental-strip-types scripts/run-with-vite.ts server.tsx\"",
     "build:client": "vite build --outDir dist/client",
     "build:server-render": "vite build --ssr src/entry-server.tsx --outDir dist/server",
     "build:server-logic": "tsc --project tsconfig.node.json",
@@ -74,8 +74,7 @@
     "typescript": "5.9.2",
     "typescript-eslint": "8.67.0",
     "vite": "^8.3.6",
-    "vite-node": "6.0.0",
-    "vite-plugin-static-copy": "3.1.2"
+    "vite-plugin-static-copy": "^4.1.1"
   },
   "packageManager": "yarn@4.9.2",
   "resolutions": {
